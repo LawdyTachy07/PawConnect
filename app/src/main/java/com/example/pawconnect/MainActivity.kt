@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import com.example.pawconnect.business.PetProduct.logic.PetProductBusinessViewModel
+import com.example.pawconnect.business.PetProduct.ui.PetProductBusinessScreen
 import com.example.pawconnect.ui.components.PawConnectBottomBar
 import com.example.pawconnect.ui.components.PawConnectTopAppBar
 import com.example.pawconnect.ui.theme.PawConnectTheme
@@ -32,7 +34,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PawConnectTheme(darkTheme = false) {
-                PawConnectMainShell()
+                PetProductBusinessScreen(PetProductBusinessViewModel())
             }
         }
     }
