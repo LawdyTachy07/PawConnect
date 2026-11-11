@@ -80,18 +80,18 @@ fun PawConnectMainShell() {
             if (isBusinessRole) {
                 // ================= BUSINESS SCREENS =================
                 when (selectedTabIndex) {
-                    0 -> BusinessOverviewScreen()   // Teammate
-                    1 -> BusinessListingsScreen()   // Your Part (Module 3 & 4)
-                    2 -> BusinessStockScreen()      // Teammate
-                    3 -> BusinessScheduleScreen()   // Teammate
+                    0 -> BusinessOverviewScreen()
+                    1 -> BusinessListingsScreen()
+                    2 -> BusinessStockScreen()
+                    3 -> BusinessScheduleScreen()
                 }
             } else {
                 // ================= USER SCREENS =================
                 when (selectedTabIndex) {
-                    0 -> UserAdoptScreen()          // Your Part (Module 4 & Compatibility)
-                    1 -> UserShopScreen()           // Teammate
-                    2 -> UserBookScreen()           // Teammate
-                    3 -> UserProfileScreen()        // Teammate
+                    0 -> UserAdoptScreen()
+                    1 -> UserShopScreen()
+                    2 -> UserBookScreen()
+                    3 -> UserProfileScreen()
                 }
             }
         }
