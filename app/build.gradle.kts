@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.mini_project"
+    namespace = "com.example.pawconnect"
     compileSdk {
         version = release(37)
     }
