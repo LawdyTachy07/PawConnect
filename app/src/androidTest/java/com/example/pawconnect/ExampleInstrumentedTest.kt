@@ -1,4 +1,4 @@
-package com.example.mini_project
+package com.example.pawconnect
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
