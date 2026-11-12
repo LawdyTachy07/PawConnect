@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.mini_project"
+    namespace = "com.example.pawconnect"
     compileSdk {
         version = release(37)
     }
@@ -37,6 +37,10 @@ android {
 
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
+    implementation("androidx.navigation:navigation-compose:2.8.5")
+    implementation("androidx.compose.material3:material3")
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
