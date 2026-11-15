@@ -15,10 +15,12 @@ import com.example.pawconnect.business.PetProduct.ui.PetProductBusinessScreen
 import com.example.pawconnect.ui.components.PawConnectBottomBar
 import com.example.pawconnect.ui.components.PawConnectTopAppBar
 import com.example.pawconnect.ui.theme.PawConnectTheme
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.pawconnect.user.product.logic.UserProductViewModel
 
 // Import User Screens
 import com.example.pawconnect.user.adopt.ui.UserAdoptScreen
-import com.example.pawconnect.user.shop.ui.UserShopScreen
+import com.example.pawconnect.user.product.ui.UserShopScreen
 import com.example.pawconnect.user.book.ui.UserBookScreen
 import com.example.pawconnect.user.profile.ui.UserProfileScreen
 
@@ -34,7 +36,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PawConnectTheme(darkTheme = false) {
-                PetProductBusinessScreen(PetProductBusinessViewModel())
+                PawConnectMainShell()
             }
         }
     }
@@ -48,6 +50,7 @@ fun PawConnectMainShell() {
 
     // Track currently selected bottom tab index (0 to 3)
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val userProductViewModel: UserProductViewModel = viewModel()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -89,7 +92,16 @@ fun PawConnectMainShell() {
                 // ================= USER SCREENS =================
                 when (selectedTabIndex) {
                     0 -> UserAdoptScreen()
-                    1 -> UserShopScreen()
+                    1 -> UserShopScreen(
+                        shopViewModel = userProductViewModel,
+                        onProfileClick = {
+                            selectedTabIndex = 3
+                        },
+                        onBottomItemSelected = { index ->
+                            selectedTabIndex = index
+                        },
+                        showAppChrome = false
+                    )
                     2 -> UserBookScreen()
                     3 -> UserProfileScreen()
                 }

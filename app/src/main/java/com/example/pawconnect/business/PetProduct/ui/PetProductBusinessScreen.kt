@@ -1,5 +1,6 @@
 package com.example.pawconnect.business.PetProduct.ui
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -441,7 +442,10 @@ fun PetProductBusinessScreen(
 fun ProductListingLightPreview() {
     PawConnectTheme(darkTheme = false) {
         PetProductBusinessScreen(
-            viewModel = PetProductBusinessViewModel()
+            viewModel = TODO(),
+            onNotificationClicked = TODO(),
+            onProfileClicked = TODO(),
+            onBottomNavigationClicked = TODO()
         )
     }
 }
@@ -460,7 +464,10 @@ fun ProductListingLightPreview() {
 fun ProductListingDarkPreview() {
     PawConnectTheme(darkTheme = true) {
         PetProductBusinessScreen(
-            viewModel = PetProductBusinessViewModel()
+            viewModel = TODO(),
+            onNotificationClicked = TODO(),
+            onProfileClicked = TODO(),
+            onBottomNavigationClicked = TODO()
         )
     }
 }
