@@ -1,8 +1,5 @@
 package com.example.pawconnect.user.adopt.data
 
-/**
- * Represents a pet available for adoption.
- */
 data class Pet(
     val id: String = "",
     val businessId: String = "",
@@ -19,18 +16,6 @@ data class Pet(
     val description: String = ""
 )
 
-/**
- * Profile of an adopter used for lifestyle compatibility matching.
- */
-data class AdopterProfile(
-    val housingType: String = "",
-    val dailyFreeHours: Int = 0,
-    val hasExperience: Boolean = false
-)
-
-/**
- * An adoption application submitted by a user for a pet.
- */
 data class AdoptionApplication(
     val id: String = "",
     val petId: String = "",
@@ -42,4 +27,10 @@ data class AdoptionApplication(
     val matchScore: Int = 0,
     val notes: String = "",
     val status: String = "Pending"
+)
+
+data class AdopterProfile(
+    val housingType: String = "",
+    val dailyFreeHours: Int = 0,
+    val hasExperience: Boolean = false
 )
