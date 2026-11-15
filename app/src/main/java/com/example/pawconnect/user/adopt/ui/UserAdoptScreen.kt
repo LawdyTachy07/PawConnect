@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,126 +20,42 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pawconnect.user.adopt.data.AdopterProfile
 import com.example.pawconnect.user.adopt.data.AdoptionApplication
 import com.example.pawconnect.user.adopt.data.Pet
 import com.example.pawconnect.user.adopt.logic.LifestyleCompatibilityMatcher
-import java.util.UUID
+import com.example.pawconnect.user.adopt.logic.UserAdoptViewModel
 
+/**
+ * Modern Figma-inspired User Adoption Screen.
+ * Connected to UserAdoptViewModel with Material Design 3 styling.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserAdoptScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: UserAdoptViewModel = viewModel()
 ) {
-    // State for User's Adopter Lifestyle Profile
-    var adopterProfile by remember {
-        mutableStateOf(
-            AdopterProfile(
-                housingType = "Apartment",
-                dailyFreeHours = 3,
-                hasExperience = true
-            )
-        )
-    }
+    // Collect ViewModel StateFlows
+    val adopterProfile by viewModel.adopterProfile.collectAsState()
+    val applications by viewModel.applications.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedFilter by viewModel.selectedFilter.collectAsState()
 
-    // Tab state (0 = Browse Pets, 1 = My Applications)
-    var selectedTab by remember { mutableIntStateOf(0) }
+    // Get filtered and calculated match scores for pets
+    val filteredPetsWithScores = viewModel.getFilteredAndSortedPets()
 
-    // Search & Filter State
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedFilter by remember { mutableStateOf("For you") }
-    val filters = listOf("For you", "Dogs", "Cats", "Nearby")
-
-    // Sample Rescued Pets
-    val petsList = remember {
-        mutableStateListOf(
-            Pet(
-                id = "pet_1",
-                businessId = "shelter_pj",
-                name = "Milo",
-                breed = "Mixed breed",
-                age = 2,
-                gender = "Male",
-                healthStatus = "Vaccinated • Neutered • Microchipped",
-                status = "Ready to adopt",
-                imageUrl = "",
-                idealSpace = "Apartment",
-                activityLevel = "Medium",
-                location = "Rescued • Petaling Jaya",
-                description = "Milo is a friendly and energetic rescue who loves cuddles, playful walks, and sunny nap spots. Great with families!"
-            ),
-            Pet(
-                id = "pet_2",
-                businessId = "shelter_sj",
-                name = "Luna",
-                breed = "Domestic Shorthair",
-                age = 1,
-                gender = "Female",
-                healthStatus = "Vaccinated • Neutered • Microchipped",
-                status = "Ready to adopt",
-                imageUrl = "",
-                idealSpace = "Apartment",
-                activityLevel = "Low",
-                location = "Rescued • Subang Jaya",
-                description = "Luna is a calm, gentle rescue cat who enjoys quiet rooms, window views, and gentle head scratches."
-            ),
-            Pet(
-                id = "pet_3",
-                businessId = "shelter_kl",
-                name = "Buster",
-                breed = "Golden Mix",
-                age = 3,
-                gender = "Male",
-                healthStatus = "Vaccinated • Neutered • Microchipped",
-                status = "Ready to adopt",
-                imageUrl = "",
-                idealSpace = "House with Yard",
-                activityLevel = "High",
-                location = "Rescued • Kuala Lumpur",
-                description = "Buster is an active and happy rescue dog who thrives with outdoor playtime, open spaces, and an adventurous owner."
-            )
-        )
-    }
-
-    // User Applications State (CRUD)
-    val applicationsList = remember {
-        mutableStateListOf(
-            AdoptionApplication(
-                id = "app_101",
-                petId = "pet_1",
-                userId = "user_curr",
-                applicantName = "Alex Tan",
-                housingType = "Apartment",
-                dailyFreeHours = 3,
-                hasExperience = true,
-                matchScore = 85,
-                notes = "I work from home and have a spacious balcony area.",
-                status = "Pending"
-            )
-        )
-    }
-
-    // Dialog control states
-    var showProfileDialog by remember { mutableStateOf(false) }
-    var showApplyDialog by remember { mutableStateOf(false) }
-    var targetPetForApply by remember { mutableStateOf<Pet?>(null) }
+    // UI state
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var showQuizModal by remember { mutableStateOf(false) }
+    var selectedPetForDetail by remember { mutableStateOf<Pair<Pet, Int>?>(null) }
+    var petForApplication by remember { mutableStateOf<Pet?>(null) }
     var editingApplication by remember { mutableStateOf<AdoptionApplication?>(null) }
+    var applicationToWithdraw by remember { mutableStateOf<AdoptionApplication?>(null) }
+    val favoritesMap = remember { mutableStateMapOf<String, Boolean>() }
 
-    // Filtered pets computation
-    val filteredPets = remember(searchQuery, selectedFilter, petsList) {
-        petsList.filter { pet ->
-            val matchesQuery = pet.name.contains(searchQuery, ignoreCase = true) ||
-                    pet.breed.contains(searchQuery, ignoreCase = true) ||
-                    pet.location.contains(searchQuery, ignoreCase = true)
-
-            val matchesFilter = when (selectedFilter) {
-                "Dogs" -> pet.breed.contains("Dog", ignoreCase = true) || pet.breed.contains("Mix", ignoreCase = true) || pet.breed.contains("Golden", ignoreCase = true)
-                "Cats" -> pet.breed.contains("Cat", ignoreCase = true) || pet.breed.contains("Shorthair", ignoreCase = true)
-                "Nearby" -> pet.location.contains("Petaling", ignoreCase = true) || pet.location.contains("Subang", ignoreCase = true)
-                else -> true
-            }
-            matchesQuery && matchesFilter
-        }
-    }
+    val filterOptions = listOf("All pets", "Dogs", "Cats", "Best Match")
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -148,9 +65,9 @@ fun UserAdoptScreen(
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surface)
             ) {
-                // Main Header Title & Subtitle
+                // Top Header Section
                 Column(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp)
                 ) {
                     Text(
                         text = "Find your forever friend",
@@ -159,274 +76,489 @@ fun UserAdoptScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Rescued with love. Ready for a new beginning.",
+                        text = "Every paw deserves a loving home.",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
                 }
 
-                // Tab Selector (Browse Pets vs My Applications)
-                TabRow(
-                    selectedTabIndex = selectedTab,
+                // Two clean tabs: Adoptable Pets & My Applications (count)
+                SecondaryTabRow(
+                    selectedTabIndex = selectedTabIndex,
                     containerColor = MaterialTheme.colorScheme.surface,
                     contentColor = MaterialTheme.colorScheme.primary
                 ) {
                     Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = { Text("Adoptable Pets (${filteredPets.size})") }
+                        selected = selectedTabIndex == 0,
+                        onClick = { selectedTabIndex = 0 },
+                        text = {
+                            Text(
+                                text = "Adoptable Pets",
+                                fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
                     )
                     Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = { Text("My Applications (${applicationsList.size})") }
+                        selected = selectedTabIndex == 1,
+                        onClick = { selectedTabIndex = 1 },
+                        text = {
+                            Text(
+                                text = "My Applications (${applications.size})",
+                                fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
                     )
                 }
             }
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            if (selectedTab == 0) {
-                // Browse & Search View
+            if (selectedTabIndex == 0) {
+                // Tab 1: Adoptable Pets
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
-                    // Search & Filter Header item
+                    // Search Bar & Filter Chips
                     item {
-                        SearchAndFilterHeader(
-                            searchQuery = searchQuery,
-                            onSearchQueryChange = { searchQuery = it },
-                            selectedFilter = selectedFilter,
-                            onFilterSelect = { selectedFilter = it },
-                            filters = filters,
-                            onOpenProfileDialog = { showProfileDialog = true }
-                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { viewModel.setSearchQuery(it) },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = { Text("Search by breed or name...") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = "Search",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (searchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                                            Icon(Icons.Default.Close, contentDescription = "Clear")
+                                        }
+                                    }
+                                },
+                                shape = RoundedCornerShape(24.dp),
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                                )
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Filter Chips Row
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(filterOptions) { filter ->
+                                    FilterChip(
+                                        selected = selectedFilter == filter,
+                                        onClick = { viewModel.setSelectedFilter(filter) },
+                                        label = { Text(filter) },
+                                        leadingIcon = if (selectedFilter == filter) {
+                                            {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        } else null,
+                                        shape = RoundedCornerShape(20.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
 
-                    // Pet Cards List
-                    if (filteredPets.isEmpty()) {
+                    // Compatibility Banner Card (Figma Inspired)
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(18.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(48.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(14.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Find your perfect match",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "Answer 3 quick questions to discover pets that fit your lifestyle.",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Button(
+                                        onClick = { showQuizModal = true },
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary
+                                        ),
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Tune,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Start matching",
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Section Title: Best Matches / Waiting for you
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (selectedFilter == "Best Match") "BEST MATCHES FOR YOU" else "Waiting for a Home",
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            Text(
+                                text = "${filteredPetsWithScores.size} rescued pets",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    // 2-Column Pet Grid (Chunked into pairs for LazyColumn)
+                    if (filteredPetsWithScores.isEmpty()) {
                         item {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(32.dp),
+                                    .padding(40.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = "No adoptable pets found matching your criteria.",
-                                    style = MaterialTheme.typography.bodyLarge,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     } else {
-                        items(filteredPets, key = { it.id }) { pet ->
-                            val matchScore = LifestyleCompatibilityMatcher.calculateMatchScore(adopterProfile, pet)
-                            PetDetailCard(
-                                pet = pet,
-                                matchScore = matchScore,
-                                onAdjustProfile = { showProfileDialog = true },
-                                onInquireAdopt = {
-                                    targetPetForApply = pet
-                                    editingApplication = null
-                                    showApplyDialog = true
+                        val pairs = filteredPetsWithScores.chunked(2)
+                        items(pairs) { pair ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                for ((pet, score) in pair) {
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        PetGridCard(
+                                            pet = pet,
+                                            matchScore = score,
+                                            isFavorite = favoritesMap[pet.id] == true,
+                                            onFavoriteToggle = {
+                                                favoritesMap[pet.id] = !(favoritesMap[pet.id] ?: false)
+                                            },
+                                            onClick = {
+                                                selectedPetForDetail = pet to score
+                                            }
+                                        )
+                                    }
                                 }
-                            )
+                                // Fill empty column if odd item
+                                if (pair.size == 1) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
                         }
                     }
                 }
             } else {
-                // My Applications View (CRUD)
-                MyApplicationsSection(
-                    applications = applicationsList,
-                    pets = petsList,
-                    onEditApplication = { app ->
+                // Tab 2: My Applications
+                MyApplicationsTab(
+                    applications = applications,
+                    pets = viewModel.pets.collectAsState().value,
+                    onEdit = { app ->
                         editingApplication = app
-                        targetPetForApply = petsList.find { it.id == app.petId }
-                        showApplyDialog = true
+                        petForApplication = viewModel.pets.value.find { it.id == app.petId }
                     },
-                    onDeleteApplication = { app ->
-                        applicationsList.remove(app)
+                    onWithdraw = { app ->
+                        applicationToWithdraw = app
                     }
                 )
             }
         }
     }
 
-    // Dialog 1: Adjust Lifestyle Profile
-    if (showProfileDialog) {
-        LifestyleProfileDialog(
+    // Modal 1: Lifestyle Quiz Dialog
+    if (showQuizModal) {
+        LifestyleQuizModal(
             currentProfile = adopterProfile,
-            onDismiss = { showProfileDialog = false },
-            onSave = { updated ->
-                adopterProfile = updated
-                showProfileDialog = false
+            onDismiss = { showQuizModal = false },
+            onSave = { housing, hours, exp ->
+                viewModel.updateAdopterProfile(housing, hours, exp)
+                showQuizModal = false
             }
         )
     }
 
-    // Dialog 2: Application Submission/Edit Form
-    if (showApplyDialog && targetPetForApply != null) {
-        val pet = targetPetForApply!!
-        val currentMatchScore = LifestyleCompatibilityMatcher.calculateMatchScore(adopterProfile, pet)
-
-        AdoptionApplicationDialog(
+    // Modal 2: Pet Detail Sheet
+    if (selectedPetForDetail != null) {
+        val (pet, score) = selectedPetForDetail!!
+        PetDetailModalSheet(
             pet = pet,
+            matchScore = score,
             adopterProfile = adopterProfile,
-            matchScore = currentMatchScore,
+            onDismiss = { selectedPetForDetail = null },
+            onInquireAdopt = {
+                petForApplication = pet
+                editingApplication = null
+                selectedPetForDetail = null
+            }
+        )
+    }
+
+    // Modal 3: Adoption Application Form Dialog
+    if (petForApplication != null) {
+        val pet = petForApplication!!
+        val score = LifestyleCompatibilityMatcher.calculateMatchScore(adopterProfile, pet)
+        AdoptionApplicationFormDialog(
+            pet = pet,
+            matchScore = score,
             existingApplication = editingApplication,
             onDismiss = {
-                showApplyDialog = false
-                targetPetForApply = null
+                petForApplication = null
                 editingApplication = null
             },
             onSubmit = { appName, notes ->
                 if (editingApplication != null) {
-                    // Update existing pending application
-                    val index = applicationsList.indexOfFirst { it.id == editingApplication!!.id }
-                    if (index != -1) {
-                        applicationsList[index] = applicationsList[index].copy(
-                            applicantName = appName,
-                            housingType = adopterProfile.housingType,
-                            dailyFreeHours = adopterProfile.dailyFreeHours,
-                            hasExperience = adopterProfile.hasExperience,
-                            matchScore = currentMatchScore,
-                            notes = notes
-                        )
-                    }
+                    viewModel.updateApplication(editingApplication!!.id, appName, notes)
                 } else {
-                    // Create new application
-                    val newApp = AdoptionApplication(
-                        id = "app_${UUID.randomUUID().toString().take(6)}",
-                        petId = pet.id,
-                        userId = "user_curr",
-                        applicantName = appName,
-                        housingType = adopterProfile.housingType,
-                        dailyFreeHours = adopterProfile.dailyFreeHours,
-                        hasExperience = adopterProfile.hasExperience,
-                        matchScore = currentMatchScore,
-                        notes = notes,
-                        status = "Pending"
-                    )
-                    applicationsList.add(0, newApp)
+                    viewModel.submitApplication(pet.id, appName, notes)
                 }
-                showApplyDialog = false
-                targetPetForApply = null
+                petForApplication = null
                 editingApplication = null
-                selectedTab = 1 // Switch to Applications tab to view
+                selectedTabIndex = 1
+            }
+        )
+    }
+
+    // Modal 4: Withdraw Application Confirmation Dialog
+    if (applicationToWithdraw != null) {
+        AlertDialog(
+            onDismissRequest = { applicationToWithdraw = null },
+            title = { Text("Withdraw Application?", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to withdraw your adoption application for this pet? This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.withdrawApplication(applicationToWithdraw!!.id)
+                        applicationToWithdraw = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Withdraw")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { applicationToWithdraw = null }) {
+                    Text("Cancel")
+                }
             }
         )
     }
 }
 
 /**
- * Search Bar and Filter Chips Composable
+ * Clean 2-Column Pet Grid Card Component
  */
 @Composable
-private fun SearchAndFilterHeader(
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    selectedFilter: String,
-    onFilterSelect: (String) -> Unit,
-    filters: List<String>,
-    onOpenProfileDialog: () -> Unit
+private fun PetGridCard(
+    pet: Pet,
+    matchScore: Int,
+    isFavorite: Boolean,
+    onFavoriteToggle: () -> Unit,
+    onClick: () -> Unit
 ) {
-    Column(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        // Search TextField
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Search by pet name, breed, or location...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { onSearchQueryChange("") }) {
-                        Icon(Icons.Default.Close, contentDescription = "Clear search")
-                    }
-                }
-            },
-            shape = RoundedCornerShape(24.dp),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Filter Chips & Lifestyle Profile Button
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            LazyRow(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Column {
+            // Visual Header Banner with Match Score Badge and Favorite Icon
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(115.dp)
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
             ) {
-                items(filters) { filter ->
-                    FilterChip(
-                        selected = selectedFilter == filter,
-                        onClick = { onFilterSelect(filter) },
-                        label = { Text(filter) },
-                        leadingIcon = if (selectedFilter == filter) {
-                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null
+                Icon(
+                    imageVector = Icons.Default.Pets,
+                    contentDescription = pet.name,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+
+                // Match Score Pill Badge (Top-Left)
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (matchScore >= 80) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+                ) {
+                    Text(
+                        text = "$matchScore% match",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    )
+                }
+
+                // Favorite Heart Toggle (Top-Right)
+                IconButton(
+                    onClick = onFavoriteToggle,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = "Favorite",
+                        tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }
 
-            IconButton(
-                onClick = onOpenProfileDialog,
-                modifier = Modifier
-                    .padding(start = 4.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Tune,
-                    contentDescription = "Adjust Profile",
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+            // Pet Info Body
+            Column(modifier = Modifier.padding(10.dp)) {
+                Text(
+                    text = pet.name,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+
+                Text(
+                    text = pet.breed,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Age & Gender Pill Tag
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Text(
+                        text = "${pet.age} yrs • ${pet.gender}",
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
 }
 
 /**
- * Pet Detail Card Composable
+ * Pet Detail Modal Sheet Composable
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PetDetailCard(
+private fun PetDetailModalSheet(
     pet: Pet,
     matchScore: Int,
-    onAdjustProfile: () -> Unit,
+    adopterProfile: AdopterProfile,
+    onDismiss: () -> Unit,
     onInquireAdopt: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-
-            // Pet Banner Placeholder Image
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp)
+        ) {
+            // Header Image Placeholder
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .height(150.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.secondaryContainer),
                 contentAlignment = Alignment.Center
             ) {
@@ -438,9 +570,9 @@ private fun PetDetailCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Title & Age/Gender
+            // Name, Breed & Location
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -448,85 +580,67 @@ private fun PetDetailCard(
             ) {
                 Column {
                     Text(
-                        text = "${pet.name} • ${pet.age} yrs old",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        text = pet.name,
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "${pet.gender} • ${pet.breed}",
+                        text = "${pet.breed} • ${pet.age} yrs • ${pet.gender}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                // Ready to adopt badge
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
-                        text = pet.status,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        text = "$matchScore% Match",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Location Badge
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = "Location",
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = pet.location,
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Description
+            // Bio / Description
             Text(
                 text = pet.description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
+                color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Medical Tags
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                val medicalTags = listOf("Vaccinated", "Neutered", "Microchipped")
-                medicalTags.forEach { tag ->
+            // Medical Checkmarks
+            Text(
+                text = "Medical Status",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("Vaccinated", "Neutered", "Microchipped").forEach { medical ->
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.CheckCircle,
+                                imageVector = Icons.Default.Check,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = tag,
+                                text = medical,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -535,109 +649,81 @@ private fun PetDetailCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Compatibility Match Card (Unique Feature)
-            CompatibilityMatchCard(
-                matchScore = matchScore,
-                onAdjustProfile = onAdjustProfile
+            // Detailed Lifestyle Compatibility Breakdown
+            Text(
+                text = "Lifestyle Compatibility Breakdown",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
             )
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(12.dp))
+            val spaceFit = LifestyleCompatibilityMatcher.calculateSpaceFit(adopterProfile, pet)
+            val timeFit = LifestyleCompatibilityMatcher.calculateTimeFit(adopterProfile, pet)
+            val expFit = LifestyleCompatibilityMatcher.calculateExperienceFit(adopterProfile)
+
+            FitBreakdownRow(label = "Space Fit (${pet.idealSpace})", score = spaceFit)
+            Spacer(modifier = Modifier.height(6.dp))
+            FitBreakdownRow(label = "Time Fit (${pet.activityLevel} Activity)", score = timeFit)
+            Spacer(modifier = Modifier.height(6.dp))
+            FitBreakdownRow(label = "Experience Fit", score = expFit)
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Primary Inquire to Adopt Button
             Button(
                 onClick = onInquireAdopt,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(imageVector = Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Inquire to Adopt ${pet.name}",
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                 )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
-/**
- * Compatibility Match Card Component (Unique Feature)
- */
 @Composable
-private fun CompatibilityMatchCard(
-    matchScore: Int,
-    onAdjustProfile: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
-        )
-    ) {
+private fun FitBreakdownRow(label: String, score: Int) {
+    Column {
         Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Circular Match Score Badge
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(56.dp)
-            ) {
-                CircularProgressIndicator(
-                    progress = { matchScore / 100f },
-                    modifier = Modifier.fillMaxSize(),
-                    color = if (matchScore >= 75) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    strokeWidth = 5.dp
-                )
-                Text(
-                    text = "$matchScore%",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Lifestyle Match Score",
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = if (matchScore >= 80) "Excellent match for your housing space & activity!"
-                    else "Good match. Adjust your profile for higher accuracy.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Adjust my lifestyle profile",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    ),
-                    modifier = Modifier
-                        .clickable { onAdjustProfile() }
-                        .padding(top = 4.dp)
-                )
-            }
+            Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text = "$score%", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
         }
+        Spacer(modifier = Modifier.height(2.dp))
+        LinearProgressIndicator(
+            progress = { score / 100f },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(CircleShape),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     }
 }
 
 /**
- * Dialog to adjust user's lifestyle profile
+ * Lifestyle Quiz Dialog / BottomSheet
  */
 @Composable
-private fun LifestyleProfileDialog(
+private fun LifestyleQuizModal(
     currentProfile: AdopterProfile,
     onDismiss: () -> Unit,
-    onSave: (AdopterProfile) -> Unit
+    onSave: (housing: String, freeHours: Int, hasExp: Boolean) -> Unit
 ) {
     var housingType by remember { mutableStateOf(currentProfile.housingType) }
     var dailyFreeHours by remember { mutableIntStateOf(currentProfile.dailyFreeHours) }
@@ -645,45 +731,48 @@ private fun LifestyleProfileDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text("Adjust Lifestyle Profile", fontWeight = FontWeight.Bold)
-        },
+        title = { Text("Lifestyle Matching Quiz", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(
-                    text = "Update your living conditions to see live match scores across all pets.",
+                    text = "Answer 3 quick questions to calculate live compatibility scores for all adoptable pets.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Housing Type Selector
-                Text("Housing Type", style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("Apartment", "House with Yard").forEach { option ->
-                        FilterChip(
-                            selected = housingType == option,
-                            onClick = { housingType = option },
-                            label = { Text(option) }
-                        )
+                // Q1: Housing Type
+                Column {
+                    Text("1. What is your living space?", style = MaterialTheme.typography.labelLarge)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("Apartment", "House with Yard").forEach { option ->
+                            FilterChip(
+                                selected = housingType == option,
+                                onClick = { housingType = option },
+                                label = { Text(option) }
+                            )
+                        }
                     }
                 }
 
-                // Daily Free Hours
-                Text("Daily Free Hours: $dailyFreeHours hrs", style = MaterialTheme.typography.labelLarge)
-                Slider(
-                    value = dailyFreeHours.toFloat(),
-                    onValueChange = { dailyFreeHours = it.toInt() },
-                    valueRange = 1f..10f,
-                    steps = 8
-                )
+                // Q2: Daily Free Hours
+                Column {
+                    Text("2. Daily free hours for pet care: $dailyFreeHours hrs", style = MaterialTheme.typography.labelLarge)
+                    Slider(
+                        value = dailyFreeHours.toFloat(),
+                        onValueChange = { dailyFreeHours = it.toInt() },
+                        valueRange = 1f..10f,
+                        steps = 8
+                    )
+                }
 
-                // Prior Experience Switch
+                // Q3: Experience
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Prior Pet Experience", style = MaterialTheme.typography.labelLarge)
+                    Text("3. Prior pet ownership experience?", style = MaterialTheme.typography.labelLarge)
                     Switch(
                         checked = hasExperience,
                         onCheckedChange = { hasExperience = it }
@@ -692,18 +781,8 @@ private fun LifestyleProfileDialog(
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    onSave(
-                        AdopterProfile(
-                            housingType = housingType,
-                            dailyFreeHours = dailyFreeHours,
-                            hasExperience = hasExperience
-                        )
-                    )
-                }
-            ) {
-                Text("Save Profile")
+            Button(onClick = { onSave(housingType, dailyFreeHours, hasExperience) }) {
+                Text("Update Matches Live")
             }
         },
         dismissButton = {
@@ -715,12 +794,11 @@ private fun LifestyleProfileDialog(
 }
 
 /**
- * Dialog / BottomSheet Form to Submit or Edit an Adoption Application
+ * Adoption Application Form Dialog (Create / Update)
  */
 @Composable
-private fun AdoptionApplicationDialog(
+private fun AdoptionApplicationFormDialog(
     pet: Pet,
-    adopterProfile: AdopterProfile,
     matchScore: Int,
     existingApplication: AdoptionApplication?,
     onDismiss: () -> Unit,
@@ -733,13 +811,12 @@ private fun AdoptionApplicationDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (existingApplication != null) "Update Adoption Application" else "Inquire to Adopt ${pet.name}",
+                text = if (existingApplication != null) "Edit Adoption Application" else "Inquire to Adopt ${pet.name}",
                 fontWeight = FontWeight.Bold
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Compatibility Banner
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.primaryContainer
@@ -747,57 +824,31 @@ private fun AdoptionApplicationDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
+                            .padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Favorite,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(Icons.Default.Favorite, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Compatibility Match Score: $matchScore%",
+                            text = "Calculated Match Score: $matchScore%",
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
 
-                // Applicant Name Field
                 OutlinedTextField(
                     value = applicantName,
                     onValueChange = { applicantName = it },
-                    label = { Text("Applicant Full Name") },
+                    label = { Text("Applicant Name") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
 
-                // Living Summary Info (Read-only from profile)
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(8.dp))
-                        .padding(8.dp)
-                ) {
-                    Text(
-                        text = "Submitted Profile:",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "• Housing: ${adopterProfile.housingType}\n• Free Hours: ${adopterProfile.dailyFreeHours} hrs/day\n• Experience: ${if (adopterProfile.hasExperience) "Yes" else "First-time owner"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Notes Field
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Message / Additional Notes for Shelter") },
+                    label = { Text("Message / Notes for shelter") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     maxLines = 4
@@ -806,11 +857,7 @@ private fun AdoptionApplicationDialog(
         },
         confirmButton = {
             Button(
-                onClick = {
-                    if (applicantName.isNotBlank()) {
-                        onSubmit(applicantName.trim(), notes.trim())
-                    }
-                },
+                onClick = { if (applicantName.isNotBlank()) onSubmit(applicantName.trim(), notes.trim()) },
                 enabled = applicantName.isNotBlank()
             ) {
                 Text(if (existingApplication != null) "Save Changes" else "Submit Application")
@@ -825,14 +872,14 @@ private fun AdoptionApplicationDialog(
 }
 
 /**
- * Section for Viewing & Managing Submitted Applications (CRUD: Read, Update, Delete)
+ * My Applications Tab View
  */
 @Composable
-private fun MyApplicationsSection(
+private fun MyApplicationsTab(
     applications: List<AdoptionApplication>,
     pets: List<Pet>,
-    onEditApplication: (AdoptionApplication) -> Unit,
-    onDeleteApplication: (AdoptionApplication) -> Unit
+    onEdit: (AdoptionApplication) -> Unit,
+    onWithdraw: (AdoptionApplication) -> Unit
 ) {
     if (applications.isEmpty()) {
         Box(
@@ -850,13 +897,8 @@ private fun MyApplicationsSection(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "No submitted adoption applications yet.",
+                    text = "No applications submitted yet.",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Browse adoptable pets and tap 'Inquire to Adopt' to apply.",
-                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -878,7 +920,6 @@ private fun MyApplicationsSection(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -936,7 +977,7 @@ private fun MyApplicationsSection(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // CRUD Actions (Update and Withdraw / Delete for Pending status)
+                        // Actions for Pending applications
                         if (app.status == "Pending") {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -944,17 +985,17 @@ private fun MyApplicationsSection(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 OutlinedButton(
-                                    onClick = { onEditApplication(app) },
+                                    onClick = { onEdit(app) },
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.padding(end = 8.dp)
                                 ) {
                                     Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Edit Application")
+                                    Text("Edit Details")
                                 }
 
                                 TextButton(
-                                    onClick = { onDeleteApplication(app) },
+                                    onClick = { onWithdraw(app) },
                                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                                 ) {
                                     Icon(Icons.Default.Delete, contentDescription = "Withdraw", modifier = Modifier.size(16.dp))
