@@ -4,9 +4,8 @@ import com.example.pawconnect.user.adopt.data.AdopterProfile
 import com.example.pawconnect.user.adopt.data.Pet
 import kotlin.math.roundToInt
 
-/**
- * Calculates lifestyle compatibility match score between an adopter profile and a pet.
- */
+
+ // Calculates lifestyle compatibility match score between an adopter profile and a pet.
 object LifestyleCompatibilityMatcher {
 
     /**
