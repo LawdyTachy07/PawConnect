@@ -1,3 +1,4 @@
+
 package com.example.pawconnect.business.PetProduct.data
 
 data class BusinessProduct(
@@ -12,10 +13,10 @@ data class BusinessProduct(
     val status: String = "ACTIVE",
     val imageUrl: String? = null,
     val imageRes: Int? = null,
-    val imageUri: String? = null
+    val imageUri: String? = null,
+    val subtitle: String = ""
 ) {
 
-    // Automatically determine product status
     val displayStatus: String
         get() = when {
             status.equals("INACTIVE", ignoreCase = true) ->

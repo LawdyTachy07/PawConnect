@@ -14,6 +14,7 @@ import com.example.pawconnect.ui.components.PawConnectBottomBar
 import com.example.pawconnect.ui.components.PawConnectTopAppBar
 import com.example.pawconnect.ui.theme.PawConnectTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.pawconnect.business.PetProduct.ui.PetProductBusinessScreen
 import com.example.pawconnect.user.product.logic.UserProductViewModel
 
 // Import User Screens
@@ -82,7 +83,7 @@ fun PawConnectMainShell() {
                 when (selectedTabIndex) {
                     0 -> BusinessOverviewScreen()
                     1 -> BusinessListingsScreen()
-                    2 -> BusinessStockScreen()
+                    2 -> PetProductBusinessScreen()
                     3 -> BusinessScheduleScreen()
                 }
             } else {

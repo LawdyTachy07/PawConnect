@@ -1,476 +1,475 @@
+
 package com.example.pawconnect.business.PetProduct.ui
 
-import android.annotation.SuppressLint
-import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pawconnect.business.PetProduct.data.BusinessProduct
 import com.example.pawconnect.business.PetProduct.logic.PetProductBusinessViewModel
-import com.example.pawconnect.ui.components.PawConnectTopAppBar
-import com.example.pawconnect.ui.components.PawConnectBottomBar
-import com.example.pawconnect.ui.theme.PawConnectTheme
 
 @Composable
 fun PetProductBusinessScreen(
-    viewModel: PetProductBusinessViewModel,
-    onNotificationClicked: () -> Unit = {},
-    onProfileClicked: () -> Unit = {},
-    onBottomNavigationClicked: (Int) -> Unit = {}
+    viewModel: PetProductBusinessViewModel = viewModel(),
+    onBottomNavigationClicked: (Int) -> Unit = {},
+    onViewOrderClick: () -> Unit = {}
 ) {
 
     val products by viewModel.products.collectAsState()
-    var selectedTab by remember { mutableIntStateOf(1) }
-    var selectedBottomItem by remember { mutableIntStateOf(1) }
 
-    // Control Add/Edit Product pages
-    var showProductForm by remember { mutableStateOf(false) }
-    var editingProduct by remember { mutableStateOf<BusinessProduct?>(null) }
+    // Add / Edit screen
+    var showAddEditScreen by remember {
+        mutableStateOf(false)
+    }
 
-    // Control delete confirmation
-    var productToDelete by remember { mutableStateOf<BusinessProduct?>(null) }
+    var editingProduct by remember {
+        mutableStateOf<BusinessProduct?>(null)
+    }
 
-    // ---------------------------------
+    // Delete confirmation
+    var productPendingDelete by remember {
+        mutableStateOf<BusinessProduct?>(null)
+    }
+
+    // Restock
+    var selectedProductId by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var restockAmount by remember {
+        mutableStateOf("10")
+    }
+
+    val selectedProduct = products.find {
+        it.id == selectedProductId
+    }
+
+    // -----------------------------------------
     // ADD / EDIT PRODUCT SCREEN
-    // ---------------------------------
+    // -----------------------------------------
 
-    if (showProductForm) {
+    if (showAddEditScreen) {
+
         AddEditProductScreen(
             existingProduct = editingProduct,
+
             onBackClick = {
-                showProductForm = false
+                showAddEditScreen = false
                 editingProduct = null
             },
+
             onSaveProduct = { product ->
 
                 if (editingProduct == null) {
-                    viewModel.addProduct(product) // CREATE
+
+                    // ADD NEW PRODUCT
+                    viewModel.addProduct(product)
+
                 } else {
-                    viewModel.updateProduct(product) // UPDATE
+
+                    // UPDATE EXISTING PRODUCT
+                    viewModel.updateProduct(product)
                 }
-                showProductForm = false
+
+                showAddEditScreen = false
                 editingProduct = null
             }
         )
 
-    } else {
+        return
+    }
 
-        // ---------------------------------
-        // MAIN SCAFFOLD
-        // ---------------------------------
+    // -----------------------------------------
+    // MAIN BUSINESS SCREEN
+    // -----------------------------------------
 
-        Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
-            // FIXED TOP APP BAR
-            topBar = {
-                PawConnectTopAppBar(
-                    subtitle = "Happy Tails Pet Centre",
-                    initials = "HT",
-                    onProfileClick = onProfileClicked
+    Scaffold { paddingValues ->
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+
+            // -----------------------------------------
+            // PAGE HEADING
+            // -----------------------------------------
+
+            Column {
+
+                Text(
+                    text = "Stock & Shopping Orders",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
                 )
-            },
 
-            // FIXED BOTTOM NAVIGATION
-            bottomBar = {
-                PawConnectBottomBar(
-                    isBusiness = true,
-                    selectedIndex = selectedBottomItem,
-                    onItemSelected = { index ->
-                        selectedBottomItem = index
-                        onBottomNavigationClicked(index)
-                    }
+                Text(
+                    text = "Manage your products and inventory",
+                    color = Color.Gray,
+                    fontSize = 14.sp
                 )
             }
 
-        ) { innerPadding ->
-            // Responsive layout for portrait and landscape
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(MaterialTheme.colorScheme.background)
+            // -----------------------------------------
+            // LOW STOCK INFORMATION
+            // -----------------------------------------
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFFFFF3E0)
+                ),
+
+                shape = RoundedCornerShape(16.dp)
             ) {
 
-                // Adjust horizontal padding for wider screens
-                val horizontalPadding = if (maxWidth > 600.dp) {
-                    32.dp
-                } else {
-                    20.dp
-                }
-
-                // Limit content width on large landscape screens
-                val contentWidth = if (maxWidth > 760.dp) {
-                    760.dp
-                } else {
-                    maxWidth
-                }
-
-                // ---------------------------------
-                // MAIN SCROLLABLE CONTENT
-                // ---------------------------------
-
-                LazyColumn(
-                    modifier = Modifier
-                        .width(contentWidth)
-                        .fillMaxHeight()
-                        .align(Alignment.TopCenter),
-                    contentPadding = PaddingValues(
-                        start = horizontalPadding,
-                        end = horizontalPadding,
-                        top = 16.dp,
-                        bottom = 24.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
 
-                    // ---------------------------------
-                    // 1. WORKSPACE HEADER
-                    // ---------------------------------
+                    Icon(
+                        imageVector = Icons.Default.WarningAmber,
+                        contentDescription = null,
+                        tint = Color(0xFFE58A00),
+                        modifier = Modifier.size(30.dp)
+                    )
 
-                    item {
+                    Spacer(modifier = Modifier.width(12.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                    Column {
 
-                            Column(
-                                modifier = Modifier.weight(1f)
-                            ) {
-
-                                Text(
-                                    text = "BUSINESS WORKSPACE",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.5.sp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-
-                                Spacer(
-                                    modifier = Modifier.height(5.dp)
-                                )
-
-                                Text(
-                                    text = "Listings",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = MaterialTheme.colorScheme.onBackground
-                                )
-
-                                Text(
-                                    text = "Manage everything in one simple place.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            // Notification button
-                            Surface(
-                                onClick = onNotificationClicked,
-                                shape = RoundedCornerShape(14.dp),
-                                color = MaterialTheme.colorScheme.surface,
-                                shadowElevation = 1.dp,
-                                modifier = Modifier.size(44.dp)
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Notifications,
-                                        contentDescription = "Notifications",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // ---------------------------------
-                    // 2. CATEGORY TABS
-                    // ---------------------------------
-
-                    item {
-                        val tabNames = listOf(
-                            "Pets",
-                            "Products",
-                            "Services"
+                        Text(
+                            text = "${viewModel.lowStockCount} Low Stock Products",
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF8A5200)
                         )
 
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(4.dp)
-                            ) {
-                                tabNames.forEachIndexed { index, title ->
-
-                                    val isSelected = selectedTab == index
-
-                                    Surface(
-                                        onClick = { selectedTab = index },
-                                        modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(11.dp),
-                                        color = if (isSelected) {
-                                            MaterialTheme.colorScheme.surface
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceVariant
-                                        }
-                                    ) {
-
-                                        Box(
-                                            modifier = Modifier.padding(vertical = 11.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-
-                                            Text(
-                                                text = title,
-                                                fontSize = 12.sp,
-                                                fontWeight = if (isSelected) {
-                                                    FontWeight.SemiBold
-                                                } else {
-                                                    FontWeight.Normal
-                                                },
-                                                color = if (isSelected) {
-                                                    MaterialTheme.colorScheme.primary
-                                                } else {
-                                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        Text(
+                            text = "Check your inventory and restock when needed.",
+                            color = Color(0xFF8A5200),
+                            fontSize = 12.sp
+                        )
                     }
+                }
+            }
 
-                    // ---------------------------------
-                    // 3. CATALOGUE TITLE + ADD BUTTON
-                    // ---------------------------------
+            // -----------------------------------------
+            // INVENTORY HEADING
+            // -----------------------------------------
 
-                    item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                horizontalArrangement = Arrangement.SpaceBetween,
 
-                            Column {
-                                Text(
-                                    text = "YOUR CATALOGUE",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.5.sp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                verticalAlignment = Alignment.CenterVertically
+            ) {
 
-                                Spacer(modifier = Modifier.height(4.dp))
+                Column {
 
-                                Text(
-                                    text = when (selectedTab) {
-                                        0 -> "Pet listings"
-                                        1 -> "Product listings"
-                                        else -> "Services listings"
-                                    },
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = MaterialTheme.colorScheme.onBackground
-                                )
-                            }
+                    Text(
+                        text = "Product Inventory",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
 
-                            // Add Product button
-                            if (selectedTab == 1) {
-                                Button(
-                                    onClick = {
-                                        editingProduct = null
-                                        showProductForm = true
-                                    },
-                                    shape = RoundedCornerShape(12.dp),
-                                    contentPadding = PaddingValues(
-                                        horizontal = 13.dp,
-                                        vertical = 9.dp
-                                    )
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(
-                                        modifier = Modifier.width(4.dp)
-                                    )
-                                    Text(
-                                        text = "Add New",
-                                        fontSize = 12.sp
-                                    )
-                                }
-                            }
-                        }
+                    Text(
+                        text = "${products.size} products · ${products.sumOf { it.stockQuantity }} units",
+                        color = Color.Gray,
+                        fontSize = 13.sp
+                    )
+                }
+
+                // ADD PRODUCT BUTTON
+
+                Button(
+                    onClick = {
+                        editingProduct = null
+                        showAddEditScreen = true
                     }
+                ) {
 
-                    // ---------------------------------
-                    // 4. PRODUCT LISTINGS
-                    // ---------------------------------
+                    Text("+ Add")
+                }
+            }
 
-                    when (selectedTab) {
-                        1 -> {
-                            if (products.isEmpty()) {
-                                item {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(220.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
+            // -----------------------------------------
+            // PRODUCT LISTINGS
+            // -----------------------------------------
 
-                                        Text(
-                                            text = "No products available yet.\nAdd your first product!",
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                    }
-                                }
+            if (products.isEmpty()) {
 
-                            } else {
+                Text(
+                    text = "No products added yet.",
+                    color = Color.Gray
+                )
 
-                                items(
-                                    items = products,
-                                    key = { it.id }
-                                ) { product ->
-                                    ProductListingCard(
-                                        product = product,
-                                        onEditClick = {
-                                            editingProduct = product
-                                            showProductForm = true
-                                        },
-                                        onDeleteClick = { productToDelete = product }
-                                    )
-                                }
-                            }
+            } else {
+
+                products.forEach { product ->
+
+                    // ALL ACTIONS ARE INSIDE THIS CARD
+
+                    ProductListingCard(
+                        product = product,
+
+                        // EDIT PRODUCT
+                        onEditClick = {
+
+                            editingProduct = product
+                            showAddEditScreen = true
+                        },
+
+                        // DELETE PRODUCT
+                        onDeleteClick = {
+
+                            productPendingDelete = product
+                        },
+
+                        // RESTOCK PRODUCT
+                        onRestockClick = {
+
+                            selectedProductId = product.id
+                            restockAmount = "10"
                         }
+                    )
 
-                        0 -> {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(220.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "Your pet listings will appear here.",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
+                    // IMPORTANT:
+                    // No additional Edit / Delete row here.
+                }
+            }
 
-                        2 -> {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(220.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = "Your service listings will appear here.",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
+            // -----------------------------------------
+            // RECENT ORDER SECTION
+            // -----------------------------------------
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(16.dp),
+
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+
+                    Text(
+                        text = "Recent Shopping Order",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "Order #PC2381",
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Text(
+                        text = "Aisha Rahman · 16 Nov 2026",
+                        color = Color.Gray,
+                        fontSize = 13.sp
+                    )
+
+                    Text(
+                        text = "1 × Daily Balance + 1 × Play Ball Duo"
+                    )
+
+                    Text(
+                        text = "RM72.00",
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "Delivery delayed",
+                        color = Color(0xFFE58A00),
+                        fontSize = 13.sp
+                    )
+
+                    TextButton(
+                        onClick = onViewOrderClick
+                    ) {
+
+                        Text("View Order")
                     }
                 }
             }
         }
     }
 
-    // ---------------------------------
+    // -----------------------------------------
     // DELETE CONFIRMATION DIALOG
-    // ---------------------------------
+    // -----------------------------------------
 
-    productToDelete?.let { product ->
+    productPendingDelete?.let { product ->
 
         AlertDialog(
-            onDismissRequest = { productToDelete = null },
-            title = { Text("Delete Product?") },
-            text = { Text("Are you sure you want to delete \"${product.name}\"? This action cannot be undone.") },
+
+            onDismissRequest = {
+                productPendingDelete = null
+            },
+
+            title = {
+                Text("Delete Product?")
+            },
+
+            text = {
+                Text(
+                    "Are you sure you want to delete ${product.name}? This action cannot be undone."
+                )
+            },
 
             confirmButton = {
+
                 TextButton(
                     onClick = {
+
                         viewModel.deleteProduct(product.id)
-                        productToDelete = null
+
+                        productPendingDelete = null
                     }
                 ) {
-                    Text(text = "Delete", color = MaterialTheme.colorScheme.error) }
+
+                    Text(
+                        text = "Delete",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             },
 
             dismissButton = {
-                TextButton(onClick = { productToDelete = null }) {
+
+                TextButton(
+                    onClick = {
+                        productPendingDelete = null
+                    }
+                ) {
+
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // -----------------------------------------
+    // RESTOCK DIALOG
+    // -----------------------------------------
+
+    if (selectedProduct != null) {
+
+        AlertDialog(
+
+            onDismissRequest = {
+
+                selectedProductId = null
+                restockAmount = "10"
+            },
+
+            title = {
+
+                Text("Restock ${selectedProduct.name}")
+            },
+
+            text = {
+
+                Column {
+
+                    Text(
+                        text = "Current stock: ${selectedProduct.stockQuantity} units"
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+
+                        value = restockAmount,
+
+                        onValueChange = { value ->
+
+                            if (value.isEmpty() || value.all { it.isDigit() }) {
+
+                                restockAmount = value
+                            }
+                        },
+
+                        label = {
+                            Text("Quantity")
+                        },
+
+                        placeholder = {
+                            Text("Enter additional stock")
+                        },
+
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number
+                        ),
+
+                        singleLine = true
+                    )
+                }
+            },
+
+            confirmButton = {
+
+                TextButton(
+
+                    onClick = {
+
+                        val amount = restockAmount.toIntOrNull()
+
+                        if (amount != null && amount > 0) {
+
+                            viewModel.restockProduct(
+                                productId = selectedProduct.id,
+                                additionalStock = amount
+                            )
+
+                            selectedProductId = null
+                            restockAmount = "10"
+                        }
+                    },
+
+                    enabled = (restockAmount.toIntOrNull() ?: 0) > 0
+                ) {
+
+                    Text("Restock")
+                }
+            },
+
+            dismissButton = {
+
+                TextButton(
+
+                    onClick = {
+
+                        selectedProductId = null
+                        restockAmount = "10"
+                    }
+                ) {
+
                     Text("Cancel")
                 }
             }
         )
     }
 }
-
-// ---------------------------------
-// LIGHT MODE PREVIEW
-// ---------------------------------
-
-@Preview(
-    name = "Product Listing - Light Mode",
-    showBackground = true,
-    showSystemUi = true
-)
-@Composable
-fun ProductListingLightPreview() {
-    PawConnectTheme(darkTheme = false) {
-        PetProductBusinessScreen(
-            viewModel = TODO(),
-            onNotificationClicked = TODO(),
-            onProfileClicked = TODO(),
-            onBottomNavigationClicked = TODO()
-        )
-    }
-}
-
-// ---------------------------------
-// DARK MODE PREVIEW
-// ---------------------------------
-
-@Preview(
-    name = "Product Listing - Dark Mode",
-    uiMode = Configuration.UI_MODE_NIGHT_YES,
-    showBackground = true,
-    showSystemUi = true
-)
-@Composable
-fun ProductListingDarkPreview() {
-    PawConnectTheme(darkTheme = true) {
-        PetProductBusinessScreen(
-            viewModel = TODO(),
-            onNotificationClicked = TODO(),
-            onProfileClicked = TODO(),
-            onBottomNavigationClicked = TODO()
-        )
-    }
-}
-
-
-
