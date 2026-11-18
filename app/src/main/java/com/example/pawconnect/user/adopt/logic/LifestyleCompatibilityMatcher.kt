@@ -4,15 +4,14 @@ import com.example.pawconnect.user.adopt.data.AdopterProfile
 import com.example.pawconnect.user.adopt.data.Pet
 import kotlin.math.roundToInt
 
-/**
- * Calculates the lifestyle compatibility match score between an adopter and a pet.
- */
+
+ // Calculates lifestyle compatibility match score between an adopter profile and a pet.
 object LifestyleCompatibilityMatcher {
 
     /**
-     * Calculates match score (0 - 100) using weighted scoring:
-     * - 40% Housing space compatibility
-     * - 40% Daily free hours vs pet activity level
+     * Returns a score from 0 to 100 based on:
+     * - 40% Housing space fit
+     * - 40% Daily free hours vs pet activity level fit
      * - 20% Prior pet experience
      */
     fun calculateMatchScore(adopter: AdopterProfile, pet: Pet): Int {
@@ -22,6 +21,18 @@ object LifestyleCompatibilityMatcher {
 
         val totalScore = (housingScore * 0.40) + (activityScore * 0.40) + (experienceScore * 0.20)
         return totalScore.roundToInt().coerceIn(0, 100)
+    }
+
+    fun calculateSpaceFit(adopter: AdopterProfile, pet: Pet): Int {
+        return calculateHousingScore(adopter.housingType, pet.idealSpace).roundToInt()
+    }
+
+    fun calculateTimeFit(adopter: AdopterProfile, pet: Pet): Int {
+        return calculateActivityScore(adopter.dailyFreeHours, pet.activityLevel).roundToInt()
+    }
+
+    fun calculateExperienceFit(adopter: AdopterProfile): Int {
+        return if (adopter.hasExperience) 100 else 60
     }
 
     private fun calculateHousingScore(adopterHousing: String, petIdealSpace: String): Double {
