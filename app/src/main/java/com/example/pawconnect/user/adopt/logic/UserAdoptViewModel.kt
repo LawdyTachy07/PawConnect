@@ -17,11 +17,15 @@ class UserAdoptViewModel : ViewModel() {
     private val _adopterProfile = MutableStateFlow(
         AdopterProfile(
             housingType = "Apartment",
-            dailyFreeHours = 3,
-            hasExperience = true
+            dailyFreeHours = 1,
+            hasExperience = false,
+            hasCompletedQuiz = false
         )
     )
     val adopterProfile: StateFlow<AdopterProfile> = _adopterProfile.asStateFlow()
+
+    private val _favoritePetIds = MutableStateFlow<Set<String>>(emptySet())
+    val favoritePetIds: StateFlow<Set<String>> = _favoritePetIds.asStateFlow()
 
     private val _pets = MutableStateFlow(
         listOf(
@@ -29,7 +33,7 @@ class UserAdoptViewModel : ViewModel() {
                 id = "pet_1",
                 businessId = "shelter_01",
                 name = "Luna",
-                breed = "Domestic Shorthair",
+                breed = "Domestic Shorthair Cat",
                 age = 1,
                 gender = "Female",
                 healthStatus = "Vaccinated • Neutered • Microchipped",
@@ -44,7 +48,7 @@ class UserAdoptViewModel : ViewModel() {
                 id = "pet_2",
                 businessId = "shelter_02",
                 name = "Milo",
-                breed = "Mixed Breed",
+                breed = "Mixed Breed Dog",
                 age = 2,
                 gender = "Male",
                 healthStatus = "Vaccinated • Neutered • Microchipped",
@@ -74,7 +78,7 @@ class UserAdoptViewModel : ViewModel() {
                 id = "pet_4",
                 businessId = "shelter_03",
                 name = "Bella",
-                breed = "Golden Retriever",
+                breed = "Golden Retriever Dog",
                 age = 2,
                 gender = "Female",
                 healthStatus = "Vaccinated • Neutered • Microchipped",
@@ -84,6 +88,21 @@ class UserAdoptViewModel : ViewModel() {
                 activityLevel = "High",
                 location = "Kuala Lumpur",
                 description = "Bella is a happy, high-energy Golden Retriever who thrives with active owners, outdoor games, and yard space."
+            ),
+            Pet(
+                id = "pet_5",
+                businessId = "shelter_02",
+                name = "Nibbles",
+                breed = "Rabbit",
+                age = 1,
+                gender = "Male",
+                healthStatus = "Vaccinated • Neutered",
+                status = "Ready to adopt",
+                imageUrl = "",
+                idealSpace = "Apartment",
+                activityLevel = "Low",
+                location = "Shah Alam",
+                description = "Nibbles is a sweet indoor bunny who loves fresh greens, gentle petting, and hopping around softly."
             )
         )
     )
@@ -121,11 +140,24 @@ class UserAdoptViewModel : ViewModel() {
         _selectedFilter.value = filter
     }
 
+    fun toggleFavorite(petId: String) {
+        _favoritePetIds.value = if (_favoritePetIds.value.contains(petId)) {
+            _favoritePetIds.value - petId
+        } else {
+            _favoritePetIds.value + petId
+        }
+    }
+
+    fun hasPendingApplication(petId: String): Boolean {
+        return _applications.value.any { it.petId == petId && it.status == "Pending" }
+    }
+
     fun updateAdopterProfile(housingType: String, dailyFreeHours: Int, hasExperience: Boolean) {
         _adopterProfile.value = AdopterProfile(
             housingType = housingType,
             dailyFreeHours = dailyFreeHours,
-            hasExperience = hasExperience
+            hasExperience = hasExperience,
+            hasCompletedQuiz = true
         )
     }
 
@@ -175,22 +207,29 @@ class UserAdoptViewModel : ViewModel() {
         val currentProfile = _adopterProfile.value
         val query = _searchQuery.value.lowercase().trim()
         val filter = _selectedFilter.value
+        val favs = _favoritePetIds.value
 
         val petsWithScores = _pets.value.map { pet ->
             val score = LifestyleCompatibilityMatcher.calculateMatchScore(currentProfile, pet)
             pet to score
         }
 
-        val filtered = petsWithScores.filter { (pet, _) ->
+        val filtered = petsWithScores.filter { (pet, score) ->
             val matchesSearch = query.isEmpty() ||
                     pet.name.lowercase().contains(query) ||
                     pet.breed.lowercase().contains(query) ||
                     pet.location.lowercase().contains(query)
 
+            val breedLower = pet.breed.lowercase()
+            val isDog = breedLower.contains("dog") || breedLower.contains("retriever") || breedLower.contains("bulldog")
+            val isCat = breedLower.contains("cat") || breedLower.contains("shorthair")
+
             val matchesFilter = when (filter) {
-                "Dogs" -> pet.breed.contains("Dog", ignoreCase = true) || pet.breed.contains("Breed", ignoreCase = true) || pet.breed.contains("Bulldog", ignoreCase = true) || pet.breed.contains("Retriever", ignoreCase = true)
-                "Cats" -> pet.breed.contains("Cat", ignoreCase = true) || pet.breed.contains("Shorthair", ignoreCase = true)
-                "Best Match" -> true
+                "Dogs" -> isDog
+                "Cats" -> isCat
+                "Others" -> !isDog && !isCat
+                "Saved ♥" -> favs.contains(pet.id)
+                "Best Match" -> score >= 80
                 else -> true
             }
 

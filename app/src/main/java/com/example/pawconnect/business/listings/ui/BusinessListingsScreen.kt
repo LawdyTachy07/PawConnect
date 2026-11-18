@@ -30,7 +30,6 @@ import com.example.pawconnect.user.adopt.data.Pet
 fun BusinessListingsScreen(
     modifier: Modifier = Modifier,
     viewModel: BusinessListingsViewModel = viewModel(),
-    // Added for the Listings hub: tells the parent when Add / Edit Pet opens or closes
     onEditorOpenChange: (Boolean) -> Unit = {}
 ) {
     val petListings by viewModel.petListings.collectAsState()
@@ -76,65 +75,36 @@ fun BusinessListingsScreen(
     Scaffold(
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        // Header + Pet Listings / Adoption Requests tabs scroll away together with the list
         CollapsingHeaderLayout(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
             header = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
+                SecondaryTabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.primary
                 ) {
-                    // Header
-                    Column(
-                        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp)
-                    ) {
-                        Text(
-                            text = "BUSINESS WORKSPACE",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                    Tab(
+                        selected = selectedTabIndex == 0,
+                        onClick = { selectedTabIndex = 0 },
+                        text = {
+                            Text(
+                                text = "Pet Listings (${petListings.size})",
+                                fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Medium
                             )
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Pet & Adoption Management",
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                    Tab(
+                        selected = selectedTabIndex == 1,
+                        onClick = { selectedTabIndex = 1 },
+                        text = {
+                            Text(
+                                text = "Adoption Requests (${applications.size})",
+                                fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Medium
                             )
-                        )
-                    }
-
-                    // Segmented Tabs
-                    SecondaryTabRow(
-                        selectedTabIndex = selectedTabIndex,
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = MaterialTheme.colorScheme.primary
-                    ) {
-                        Tab(
-                            selected = selectedTabIndex == 0,
-                            onClick = { selectedTabIndex = 0 },
-                            text = {
-                                Text(
-                                    text = "Pet Listings (${petListings.size})",
-                                    fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Medium
-                                )
-                            }
-                        )
-                        Tab(
-                            selected = selectedTabIndex == 1,
-                            onClick = { selectedTabIndex = 1 },
-                            text = {
-                                Text(
-                                    text = "Adoption Requests (${applications.size})",
-                                    fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Medium
-                                )
-                            }
-                        )
-                    }
+                        }
+                    )
                 }
             }
         ) {
@@ -412,6 +382,9 @@ private fun PetListingCard(
                     ) {
                         Text(
                             text = pet.name,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 8.dp),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
@@ -486,14 +459,19 @@ private fun PetListingCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Actions: Edit and Delete Buttons
+            // Actions: Prominent FilledTonalButton Edit & Delete Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedButton(
+                FilledTonalButton(
                     onClick = onEdit,
                     shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
                     modifier = Modifier.padding(end = 8.dp)
                 ) {
                     Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp))
@@ -585,17 +563,16 @@ private fun AdoptionRequestCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Application Status & Approval Actions
+            val (statusBg, statusFg) = when (application.status) {
+                "Approved" -> Color(0xFFD4EDDA) to Color(0xFF155724)
+                "Rejected" -> Color(0xFFF8D7DA) to Color(0xFF721C24)
+                else -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.Start
             ) {
-                val (statusBg, statusFg) = when (application.status) {
-                    "Approved" -> Color(0xFFD4EDDA) to Color(0xFF155724)
-                    "Rejected" -> Color(0xFFF8D7DA) to Color(0xFF721C24)
-                    else -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-                }
-
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = statusBg
@@ -607,24 +584,30 @@ private fun AdoptionRequestCard(
                         color = statusFg
                     )
                 }
+            }
 
-                if (application.status == "Pending") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = onRejectClick,
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                        ) {
-                            Text("Reject")
-                        }
+            if (application.status == "Pending") {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onRejectClick,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Reject", maxLines = 1)
+                    }
 
-                        Button(
-                            onClick = onApproveClick,
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text("Approve")
-                        }
+                    Button(
+                        onClick = onApproveClick,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("Approve", maxLines = 1)
                     }
                 }
             }
