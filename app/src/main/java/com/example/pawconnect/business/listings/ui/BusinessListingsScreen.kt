@@ -1,5 +1,6 @@
 package com.example.pawconnect.business.listings.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.pawconnect.business.listings.logic.BusinessListingsViewModel
+import com.example.pawconnect.ui.components.CollapsingHeaderLayout
 import com.example.pawconnect.user.adopt.data.AdoptionApplication
 import com.example.pawconnect.user.adopt.data.Pet
 
@@ -27,7 +29,9 @@ import com.example.pawconnect.user.adopt.data.Pet
 @Composable
 fun BusinessListingsScreen(
     modifier: Modifier = Modifier,
-    viewModel: BusinessListingsViewModel = viewModel()
+    viewModel: BusinessListingsViewModel = viewModel(),
+    // Added for the Listings hub: tells the parent when Add / Edit Pet opens or closes
+    onEditorOpenChange: (Boolean) -> Unit = {}
 ) {
     val petListings by viewModel.petListings.collectAsState()
     val applications by viewModel.incomingApplications.collectAsState()
@@ -36,6 +40,15 @@ fun BusinessListingsScreen(
     var showAddEditScreen by remember { mutableStateOf(false) }
     var petToEdit by remember { mutableStateOf<Pet?>(null) }
     var petToDelete by remember { mutableStateOf<Pet?>(null) }
+
+    LaunchedEffect(showAddEditScreen) {
+        onEditorOpenChange(showAddEditScreen)
+    }
+
+    // Phone back button / gesture closes the Add / Edit form instead of leaving the app
+    BackHandler(enabled = showAddEditScreen) {
+        showAddEditScreen = false
+    }
 
     // Application Action Confirmation states
     var applicationToApprove by remember { mutableStateOf<AdoptionApplication?>(null) }
@@ -61,189 +74,194 @@ fun BusinessListingsScreen(
     }
 
     Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-            ) {
-                // Header
-                Column(
-                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp)
-                ) {
-                    Text(
-                        text = "BUSINESS WORKSPACE",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "Pet & Adoption Management",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                }
-
-                // Segmented Tabs
-                SecondaryTabRow(
-                    selectedTabIndex = selectedTabIndex,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Tab(
-                        selected = selectedTabIndex == 0,
-                        onClick = { selectedTabIndex = 0 },
-                        text = {
-                            Text(
-                                text = "Pet Listings (${petListings.size})",
-                                fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Medium
-                            )
-                        }
-                    )
-                    Tab(
-                        selected = selectedTabIndex == 1,
-                        onClick = { selectedTabIndex = 1 },
-                        text = {
-                            Text(
-                                text = "Adoption Requests (${applications.size})",
-                                fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Medium
-                            )
-                        }
-                    )
-                }
-            }
-        }
+        modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        Box(
+        // Header + Pet Listings / Adoption Requests tabs scroll away together with the list
+        CollapsingHeaderLayout(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            if (selectedTabIndex == 0) {
-                // Tab 1: Pet Listings Catalogue
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(innerPadding),
+            header = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
                 ) {
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "YOUR CATALOGUE",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                    // Header
+                    Column(
+                        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp)
+                    ) {
+                        Text(
+                            text = "BUSINESS WORKSPACE",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
-
-                            Button(
-                                onClick = {
-                                    petToEdit = null
-                                    showAddEditScreen = true
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Add New", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-                            }
-                        }
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Pet & Adoption Management",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
                     }
 
-                    if (petListings.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(40.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("No pet listings added yet. Tap '+ Add New' to create one.", style = MaterialTheme.typography.bodyMedium)
+                    // Segmented Tabs
+                    SecondaryTabRow(
+                        selectedTabIndex = selectedTabIndex,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Tab(
+                            selected = selectedTabIndex == 0,
+                            onClick = { selectedTabIndex = 0 },
+                            text = {
+                                Text(
+                                    text = "Pet Listings (${petListings.size})",
+                                    fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Medium
+                                )
                             }
-                        }
-                    } else {
-                        items(petListings, key = { it.id }) { pet ->
-                            PetListingCard(
-                                pet = pet,
-                                onEdit = {
-                                    petToEdit = pet
-                                    showAddEditScreen = true
-                                },
-                                onDelete = {
-                                    petToDelete = pet
-                                }
-                            )
-                        }
+                        )
+                        Tab(
+                            selected = selectedTabIndex == 1,
+                            onClick = { selectedTabIndex = 1 },
+                            text = {
+                                Text(
+                                    text = "Adoption Requests (${applications.size})",
+                                    fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Medium
+                                )
+                            }
+                        )
                     }
                 }
-            } else {
-                // Tab 2: Adoption Requests
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "INCOMING APPLICATIONS",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            )
-                            if (pendingAppsCount > 0) {
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = MaterialTheme.colorScheme.tertiaryContainer
-                                ) {
-                                    Text(
-                                        text = "$pendingAppsCount Pending",
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+            }
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (selectedTabIndex == 0) {
+                    // Tab 1: Pet Listings Catalogue
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "YOUR CATALOGUE",
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
+                                )
+
+                                Button(
+                                    onClick = {
+                                        petToEdit = null
+                                        showAddEditScreen = true
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Add New", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                 }
                             }
                         }
-                    }
 
-                    if (applications.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(40.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("No incoming adoption requests.", style = MaterialTheme.typography.bodyMedium)
+                        if (petListings.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(40.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("No pet listings added yet. Tap '+ Add New' to create one.", style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        } else {
+                            items(petListings, key = { it.id }) { pet ->
+                                PetListingCard(
+                                    pet = pet,
+                                    onEdit = {
+                                        petToEdit = pet
+                                        showAddEditScreen = true
+                                    },
+                                    onDelete = {
+                                        petToDelete = pet
+                                    }
+                                )
                             }
                         }
-                    } else {
-                        items(applications, key = { it.id }) { app ->
-                            val pet = petListings.find { it.id == app.petId }
-                            val petName = pet?.name ?: "Rescued Pet"
+                    }
+                } else {
+                    // Tab 2: Adoption Requests
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "INCOMING APPLICATIONS",
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                                if (pendingAppsCount > 0) {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.tertiaryContainer
+                                    ) {
+                                        Text(
+                                            text = "$pendingAppsCount Pending",
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
-                            AdoptionRequestCard(
-                                application = app,
-                                petName = petName,
-                                onApproveClick = { applicationToApprove = app },
-                                onRejectClick = { applicationToReject = app }
-                            )
+                        if (applications.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(40.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("No incoming adoption requests.", style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        } else {
+                            items(applications, key = { it.id }) { app ->
+                                val pet = petListings.find { it.id == app.petId }
+                                val petName = pet?.name ?: "Rescued Pet"
+
+                                AdoptionRequestCard(
+                                    application = app,
+                                    petName = petName,
+                                    onApproveClick = { applicationToApprove = app },
+                                    onRejectClick = { applicationToReject = app }
+                                )
+                            }
                         }
                     }
                 }
