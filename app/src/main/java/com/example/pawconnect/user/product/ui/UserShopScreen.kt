@@ -1,4 +1,3 @@
-
 package com.example.pawconnect.user.product.ui
 
 import androidx.compose.foundation.horizontalScroll
@@ -21,22 +20,29 @@ import androidx.compose.ui.unit.sp
 import com.example.pawconnect.ui.components.PawConnectTopAppBar
 import com.example.pawconnect.ui.components.PawConnectBottomBar
 import com.example.pawconnect.ui.theme.PawConnectTheme
+import com.example.pawconnect.user.order.data.OrderItem
+import com.example.pawconnect.user.order.logic.OrderViewModel
+import com.example.pawconnect.user.order.ui.UserCheckoutScreen
+import com.example.pawconnect.user.order.ui.UserOrdersScreen
 import com.example.pawconnect.user.product.logic.UserProductViewModel
 
 @Composable
 fun UserShopScreen(
     shopViewModel: UserProductViewModel,
+    orderViewModel: OrderViewModel, // Pass your shared OrderViewModel here
     onProfileClick: () -> Unit = {},
     onBottomItemSelected: (Int) -> Unit = {},
     showAppChrome: Boolean = true
 ) {
-    var showCart by remember { mutableStateOf(false) }
+    // Screen states: "shop", "cart", "checkout", or "orders"
+    var currentScreen by remember { mutableStateOf("shop") }
 
     val cart by shopViewModel.cart.collectAsState()
+    val products by shopViewModel.products.collectAsState()
 
     Scaffold(
         bottomBar = {
-            if (showAppChrome) {
+            if (showAppChrome && currentScreen == "shop") {
                 PawConnectBottomBar(
                     isBusiness = false,
                     selectedIndex = 1,
@@ -45,27 +51,67 @@ fun UserShopScreen(
             }
         }
     ) { innerPadding ->
+        when (currentScreen) {
+            "cart" -> {
+                UserCartScreen(
+                    shopViewModel = shopViewModel,
+                    modifier = Modifier.padding(innerPadding),
+                    onBackClick = { currentScreen = "shop" },
+                    onProceedToCheckout = {
+                        currentScreen = "checkout" // Opens Module 6 Checkout!
+                    }
+                )
+            }
+            "checkout" -> {
+                // Convert current cart map to OrderItems for the checkout summary
+                val cartItems = remember(products, cart) {
+                    products.mapNotNull { product ->
+                        val qty = cart[product.id] ?: 0
+                        if (qty > 0) {
+                            OrderItem(
+                                productId = product.id,
+                                productName = product.name,
+                                price = product.price,
+                                quantity = qty
+                            )
+                        } else null
+                    }
+                }
 
-        if (showCart) {
-            UserCartScreen(
-                shopViewModel = shopViewModel,
-                modifier = Modifier.padding(innerPadding),
-                onBackClick = { showCart = false }
-            )
-        } else {
-            UserShopContent(
-                shopViewModel = shopViewModel,
-                cartItemCount = cart.values.sum(),
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize(),
-                onCartClick = { showCart = true },
-                showAppChrome = showAppChrome,
-                onProfileClick = onProfileClick
-            )
+                UserCheckoutScreen(
+                    cartItems = cartItems,
+                    orderViewModel = orderViewModel,
+                    onBackClick = { currentScreen = "cart" },
+                    onClearCart = {
+                        shopViewModel.clearCart()
+                    },
+                    onOrderPlaced = { _ ->
+                        currentScreen = "orders" // Jumps straight to My Orders after placing!
+                    }
+                )
+            }
+            "orders" -> {
+                UserOrdersScreen(
+                    orderViewModel = orderViewModel,
+                    onBackClick = { currentScreen = "shop" }
+                )
+            }
+            else -> {
+                UserShopContent(
+                    shopViewModel = shopViewModel,
+                    cartItemCount = cart.values.sum(),
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .fillMaxSize(),
+                    onCartClick = { currentScreen = "cart" },
+                    showAppChrome = showAppChrome,
+                    onProfileClick = onProfileClick
+                )
+            }
         }
     }
 }
+
 @Composable
 private fun UserShopContent(
     shopViewModel: UserProductViewModel,
@@ -81,35 +127,18 @@ private fun UserShopContent(
     var searchText by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
 
-    val categories = listOf(
-        "All",
-        "Food",
-        "Toys",
-        "Accessories",
-        "Health"
-    )
+    val categories = listOf("All", "Food", "Toys", "Accessories", "Health")
 
-    // Search and category filtering
     val filteredProducts = products.filter { product ->
+        val matchesSearch = product.name.contains(searchText, ignoreCase = true) ||
+                product.description.contains(searchText, ignoreCase = true)
 
-        val matchesSearch =
-            product.name.contains(searchText, ignoreCase = true) ||
-                    product.description.contains(searchText, ignoreCase = true)
-
-        // Health also displays products stored under the Care category
         val matchesCategory = when (selectedCategory) {
             "All" -> true
-
-            "Health" ->
-                product.category.equals("Health", ignoreCase = true) ||
-                        product.category.equals("Care", ignoreCase = true)
-
-            else -> product.category.equals(
-                selectedCategory,
-                ignoreCase = true
-            )
+            "Health" -> product.category.equals("Health", ignoreCase = true) ||
+                    product.category.equals("Care", ignoreCase = true)
+            else -> product.category.equals(selectedCategory, ignoreCase = true)
         }
-
         matchesSearch && matchesCategory
     }
 
@@ -118,7 +147,6 @@ private fun UserShopContent(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        // Top bar scrolls together with the shop content
         if (showAppChrome) {
             PawConnectTopAppBar(
                 subtitle = "Pet Shop",
@@ -127,48 +155,27 @@ private fun UserShopContent(
             )
         }
 
-        // All shop content
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 0.dp,
-                    bottom = 16.dp
-                )
+                .padding(16.dp)
         ) {
-
-            // 2. Weekly Pick Banner
+            // Weekly Pick Banner
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFFFE8D6)
-                ),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFE8D6)),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(18.dp)
-                ) {
-                    Text(
-                        text = "🐾 Weekly Pick",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF8B4513)
-                    )
-
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Text(text = "🐾 Weekly Pick", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF8B4513))
                     Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = "Discover something special for your furry friend!",
-                        color = Color(0xFF5D4037)
-                    )
+                    Text(text = "Discover something special for your furry friend!", color = Color(0xFF5D4037))
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. Search Bar and Cart Button
+            // Search & Cart Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -178,18 +185,8 @@ private fun UserShopContent(
                     value = searchText,
                     onValueChange = { searchText = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = {
-                        Text(
-                            text = "Search products...",
-                            fontSize = 12.sp
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search"
-                        )
-                    },
+                    placeholder = { Text("Search products...", fontSize = 12.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     shape = RoundedCornerShape(14.dp),
                     singleLine = true
                 )
@@ -200,173 +197,62 @@ private fun UserShopContent(
                     color = Color(0xFFFFE8D6)
                 ) {
                     Row(
-                        modifier = Modifier.padding(
-                            horizontal = 12.dp,
-                            vertical = 16.dp
-                        ),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ShoppingCart,
-                            contentDescription = "Open cart",
-                            tint = Color(0xFF8B4513)
-                        )
-
+                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = Color(0xFF8B4513))
                         Spacer(modifier = Modifier.width(5.dp))
-
-                        Text(
-                            text = "Cart ($cartItemCount)",
-                            color = Color(0xFF8B4513),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
+                        Text(text = "Cart ($cartItemCount)", color = Color(0xFF8B4513), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 4. Categories Heading
-            Text(
-                text = "Categories",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-
+            Text(text = "Categories", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 5. Horizontally Scrollable Category Chips
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 categories.forEach { category ->
                     FilterChip(
                         selected = selectedCategory == category,
-                        onClick = {
-                            selectedCategory = category
-                        },
-                        label = {
-                            Text(
-                                text = category,
-                                maxLines = 1
-                            )
-                        }
+                        onClick = { selectedCategory = category },
+                        label = { Text(text = category, maxLines = 1) }
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 6. Popular Products Heading
-            Text(
-                text = "Popular Now",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-
+            Text(text = "Popular Now", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 7. Display Products
             if (filteredProducts.isEmpty()) {
-
-                Text(
-                    text = "No products found.",
-                    modifier = Modifier.padding(vertical = 24.dp),
-                    color = Color.Gray
-                )
-
+                Text(text = "No products found.", modifier = Modifier.padding(vertical = 24.dp), color = Color.Gray)
             } else {
-
-                // Display products in two columns
                 filteredProducts.chunked(2).forEach { productRow ->
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         productRow.forEach { product ->
-
                             UserProductCard(
                                 product = product,
                                 quantityInCart = cart[product.id] ?: 0,
-                                onAddToCart = {
-                                    shopViewModel.addToCart(product.id)
-                                },
+                                onAddToCart = { shopViewModel.addToCart(product.id) },
                                 modifier = Modifier.weight(1f)
                             )
                         }
-
-                        // Keep the last product aligned to the left
                         if (productRow.size == 1) {
                             Spacer(modifier = Modifier.weight(1f))
                         }
                     }
-
                     Spacer(modifier = Modifier.height(12.dp))
                 }
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 8. Delivery Banner
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFE8F5E9)
-                ),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Text(
-                    text = "🚚 Fast and reliable delivery for your pets!",
-                    modifier = Modifier.padding(16.dp),
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
         }
-    }
-}
-
-// Light Mode Preview
-@Preview(
-    showBackground = true,
-    showSystemUi = true,
-    name = "PawConnect Shop - Light Mode"
-)
-@Composable
-fun UserShopScreenLightPreview() {
-    PawConnectTheme(darkTheme = false) {
-        val previewViewModel = remember {
-            UserProductViewModel()
-        }
-
-        UserShopScreen(
-            shopViewModel = previewViewModel,
-            showAppChrome = true
-        )
-    }
-}
-
-// Dark Mode Preview
-@Preview(
-    showBackground = true,
-    showSystemUi = true,
-    name = "PawConnect Shop - Dark Mode"
-)
-@Composable
-fun UserShopScreenDarkPreview() {
-    PawConnectTheme(darkTheme = true) {
-        val previewViewModel = remember {
-            UserProductViewModel()
-        }
-
-        UserShopScreen(
-            shopViewModel = previewViewModel,
-            showAppChrome = true
-        )
     }
 }

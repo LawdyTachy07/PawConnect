@@ -78,4 +78,8 @@ class UserProductViewModel : ViewModel() {
     fun cartQuantity(productId: String): Int = _cart.value[productId] ?: 0
 
     fun totalCartItems(): Int = _cart.value.values.sum()
+
+    fun clearCart() {
+        _cart.value = emptyMap()
+    }
 }

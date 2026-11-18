@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.DropdownMenuItem
@@ -33,12 +35,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
 import coil.compose.AsyncImage
 import com.example.pawconnect.business.PetProduct.data.BusinessProduct
+import com.example.pawconnect.business.PetProduct.logic.ProductValidator
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditProductScreen(
     existingProduct: BusinessProduct? = null,
+    otherProductNames: List<String> = emptyList(),
     onBackClick: () -> Unit = {},
     onSaveProduct: (BusinessProduct) -> Unit
 ) {
@@ -66,12 +70,41 @@ fun AddEditProductScreen(
     var selectedImageUri by remember(existingProduct?.id) {
         mutableStateOf<String?>(existingProduct?.imageUri)
     }
-    var validationMessage by remember { mutableStateOf("") }
+    // Per-field error messages (null = no error)
+    var attemptedSave by remember { mutableStateOf(false) }
+    var photoError by remember { mutableStateOf<String?>(null) }
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var categoryError by remember { mutableStateOf<String?>(null) }
+    var descriptionError by remember { mutableStateOf<String?>(null) }
+    var priceError by remember { mutableStateOf<String?>(null) }
+    var stockError by remember { mutableStateOf<String?>(null) }
+    var minimumStockError by remember { mutableStateOf<String?>(null) }
+
+    val hasPhoto = selectedImageUri != null ||
+            existingProduct?.imageUrl != null ||
+            existingProduct?.imageRes != null
+
+    fun validateAll(): Boolean {
+        photoError = ProductValidator.validatePhoto(hasPhoto, isEditing)
+        nameError = ProductValidator.validateName(productName, otherProductNames)
+        categoryError = ProductValidator.validateCategory(category)
+        descriptionError = ProductValidator.validateDescription(subtitle)
+        priceError = ProductValidator.validatePrice(price)
+        stockError = ProductValidator.validateStock(stockQuantity)
+        minimumStockError = ProductValidator.validateMinimumStock(minimumStock)
+        return listOf(
+            photoError, nameError, categoryError, descriptionError,
+            priceError, stockError, minimumStockError
+        ).all { it == null }
+    }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        selectedImageUri = uri?.toString()
+        if (uri != null) {
+            selectedImageUri = uri.toString()
+            photoError = null
+        }
     }
 
     var categoryExpanded by remember {
@@ -128,7 +161,15 @@ fun AddEditProductScreen(
                     .fillMaxWidth()
                     .height(180.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFF3F3F3))
+                    .background(
+                        if (photoError != null) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
+                        else Color(0xFFF3F3F3)
+                    )
+                    .border(
+                        width = if (photoError != null) 1.5.dp else 0.dp,
+                        color = if (photoError != null) MaterialTheme.colorScheme.error else Color.Transparent,
+                        shape = RoundedCornerShape(16.dp)
+                    )
                     .clickable {
                         imagePickerLauncher.launch("image/*")
                     },
@@ -172,11 +213,15 @@ fun AddEditProductScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Add Product Photo",
-                                color = Color.Gray
+                                color = if (photoError != null) MaterialTheme.colorScheme.error else Color.Gray
                             )
                         }
                     }
                 }
+            }
+
+            photoError?.let { message ->
+                FieldErrorText(message)
             }
 
             OutlinedButton(
@@ -194,10 +239,20 @@ fun AddEditProductScreen(
             // Product name
             OutlinedTextField(
                 value = productName,
-                onValueChange = { productName = it },
-                label = { Text("Product Name") },
+                onValueChange = {
+                    productName = it
+                    if (attemptedSave) nameError = ProductValidator.validateName(it, otherProductNames)
+                },
+                label = { Text("Product Name *") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                isError = nameError != null,
+                supportingText = {
+                    SupportingLine(
+                        error = nameError,
+                        hint = "${productName.trim().length}/${ProductValidator.MAX_NAME_LENGTH}"
+                    )
+                }
             )
 
             // Category
@@ -215,7 +270,11 @@ fun AddEditProductScreen(
                     onValueChange = {},
                     readOnly = true,
                     label = {
-                        Text("Product Category")
+                        Text("Product Category *")
+                    },
+                    isError = categoryError != null,
+                    supportingText = {
+                        SupportingLine(error = categoryError)
                     },
                     placeholder = {
                         Text("Select a category")
@@ -248,7 +307,7 @@ fun AddEditProductScreen(
                             onClick = {
                                 category = item
                                 categoryExpanded = false
-                                validationMessage = ""
+                                categoryError = null
                             }
                         )
                     }
@@ -258,17 +317,34 @@ fun AddEditProductScreen(
             // Product subtitle / description
             OutlinedTextField(
                 value = subtitle,
-                onValueChange = { subtitle = it },
-                label = { Text("Product Description") },
+                onValueChange = {
+                    subtitle = it
+                    if (attemptedSave) descriptionError = ProductValidator.validateDescription(it)
+                },
+                label = { Text("Product Description *") },
+                placeholder = { Text("e.g. Adult dog food · 2 kg") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                isError = descriptionError != null,
+                supportingText = {
+                    SupportingLine(
+                        error = descriptionError,
+                        hint = "${subtitle.trim().length}/${ProductValidator.MAX_DESCRIPTION_LENGTH}"
+                    )
+                }
             )
 
             // Price
             OutlinedTextField(
                 value = price,
-                onValueChange = { price = it },
-                label = { Text("Price (RM)") },
+                onValueChange = {
+                    price = it
+                    if (attemptedSave) priceError = ProductValidator.validatePrice(it)
+                },
+                label = { Text("Price (RM) *") },
+                placeholder = { Text("e.g. 25.90") },
+                isError = priceError != null,
+                supportingText = { SupportingLine(error = priceError) },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal
@@ -279,8 +355,22 @@ fun AddEditProductScreen(
             // Stock quantity
             OutlinedTextField(
                 value = stockQuantity,
-                onValueChange = { stockQuantity = it },
-                label = { Text("Stock Quantity") },
+                onValueChange = {
+                    stockQuantity = it
+                    if (attemptedSave) stockError = ProductValidator.validateStock(it)
+                },
+                label = { Text("Stock Quantity *") },
+                isError = stockError != null,
+                supportingText = {
+                    val stock = stockQuantity.trim().toIntOrNull()
+                    val min = minimumStock.trim().toIntOrNull()
+                    SupportingLine(
+                        error = stockError,
+                        hint = if (stock != null && min != null && stock <= min) {
+                            "At or below minimum level, so you'll get a low-stock alert."
+                        } else ""
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number
@@ -291,8 +381,18 @@ fun AddEditProductScreen(
             // Minimum stock level
             OutlinedTextField(
                 value = minimumStock,
-                onValueChange = { minimumStock = it },
-                label = { Text("Minimum Stock Level") },
+                onValueChange = {
+                    minimumStock = it
+                    if (attemptedSave) minimumStockError = ProductValidator.validateMinimumStock(it)
+                },
+                label = { Text("Minimum Stock Level *") },
+                isError = minimumStockError != null,
+                supportingText = {
+                    SupportingLine(
+                        error = minimumStockError,
+                        hint = "You'll be alerted when stock reaches this level."
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number
@@ -300,64 +400,62 @@ fun AddEditProductScreen(
                 singleLine = true
             )
 
-            if (validationMessage.isNotEmpty()) {
-                Text(
-                    text = validationMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 14.sp
-                )
+            val errorCount = listOf(
+                photoError, nameError, categoryError, descriptionError,
+                priceError, stockError, minimumStockError
+            ).count { it != null }
+
+            if (attemptedSave && errorCount > 0) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (errorCount == 1) "Please fix 1 highlighted field before saving."
+                                   else "Please fix $errorCount highlighted fields before saving.",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
             }
 
             Button(
                 onClick = {
-                    val parsedPrice = price.toDoubleOrNull()
-                    val parsedStock = stockQuantity.toIntOrNull()
-                    val parsedMinimumStock = minimumStock.toIntOrNull()
+                    attemptedSave = true
+                    if (validateAll()) {
+                        val newProduct = BusinessProduct(
+                            id = existingProduct?.id ?: UUID.randomUUID().toString(),
+                            name = productName.trim(),
+                            category = category.trim(),
+                            subtitle = subtitle.trim(),
+                            price = price.trim().toDouble(),
+                            originalPrice = existingProduct?.originalPrice ?: 0.0,
+                            discountPercent = existingProduct?.discountPercent ?: 0,
+                            stockQuantity = stockQuantity.trim().toInt(),
+                            minStockLevel = minimumStock.trim().toInt(),
+                            status = existingProduct?.status ?: "ACTIVE",
+                            imageUrl = existingProduct?.imageUrl,
+                            imageRes = if (selectedImageUri == null) {
+                                existingProduct?.imageRes
+                            } else {
+                                null
+                            },
+                            imageUri = selectedImageUri
+                        )
 
-                    when {
-                        productName.isBlank() -> {
-                            validationMessage = "Please enter a product name."
-                        }
-
-                        category.isBlank() -> {
-                            validationMessage = "Please enter a category."
-                        }
-
-                        parsedPrice == null || parsedPrice < 0 -> {
-                            validationMessage = "Please enter a valid price."
-                        }
-
-                        parsedStock == null || parsedStock < 0 -> {
-                            validationMessage = "Please enter a valid stock quantity."
-                        }
-
-                        parsedMinimumStock == null || parsedMinimumStock < 0 -> {
-                            validationMessage = "Please enter a valid minimum stock level."
-                        }
-
-                        else -> {
-                            val newProduct = BusinessProduct(
-                                id = existingProduct?.id ?: UUID.randomUUID().toString(),
-                                name = productName.trim(),
-                                category = category.trim(),
-                                subtitle = subtitle.trim(),
-                                price = parsedPrice,
-                                originalPrice = existingProduct?.originalPrice ?: 0.0,
-                                discountPercent = existingProduct?.discountPercent ?: 0,
-                                stockQuantity = parsedStock,
-                                minStockLevel = parsedMinimumStock,
-                                status = existingProduct?.status ?: "ACTIVE",
-                                imageUrl = existingProduct?.imageUrl,
-                                imageRes = if (selectedImageUri == null) {
-                                    existingProduct?.imageRes
-                                } else {
-                                    null
-                                },
-                                imageUri = selectedImageUri
-                            )
-
-                            onSaveProduct(newProduct)
-                        }
+                        onSaveProduct(newProduct)
                     }
                 },
                 modifier = Modifier
@@ -382,6 +480,29 @@ fun AddEditProductScreen(
                 Text("Cancel")
             }
         }
+    }
+}
+
+/** Red error text, or a grey hint when there is no error. */
+@Composable
+private fun SupportingLine(error: String?, hint: String = "") {
+    when {
+        error != null -> Text(text = error, color = MaterialTheme.colorScheme.error)
+        hint.isNotEmpty() -> Text(text = hint, color = Color.Gray)
+    }
+}
+
+@Composable
+private fun FieldErrorText(message: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = Icons.Default.ErrorOutline,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text = message, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
     }
 }
 
