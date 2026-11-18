@@ -17,6 +17,14 @@ data class BusinessProduct(
     val subtitle: String = ""
 ) {
 
+    /**
+     * Unique Feature 3: a product needs a low-stock alert when its stock
+     * reaches or falls below its minimum stock level (sold out included).
+     */
+    val isLowStock: Boolean
+        get() = !status.equals("INACTIVE", ignoreCase = true) &&
+                stockQuantity <= minStockLevel
+
     val displayStatus: String
         get() = when {
             status.equals("INACTIVE", ignoreCase = true) ->

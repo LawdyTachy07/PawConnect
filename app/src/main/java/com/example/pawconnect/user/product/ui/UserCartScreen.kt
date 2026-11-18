@@ -13,19 +13,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.pawconnect.ui.components.PawConnectBottomBar
-import com.example.pawconnect.ui.components.PawConnectTopAppBar
 import com.example.pawconnect.user.product.logic.UserProductViewModel
 
 @Composable
 fun UserCartScreen(
     shopViewModel: UserProductViewModel,
     modifier: Modifier = Modifier,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onProceedToCheckout: () -> Unit
 ) {
     val products by shopViewModel.products.collectAsState()
     val cart by shopViewModel.cart.collectAsState()
@@ -273,49 +271,13 @@ fun UserCartScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
-                        onClick = {
-                            // Add your checkout action here later
-                        },
+                        onClick = onProceedToCheckout,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Proceed to Checkout")
                     }
                 }
             }
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun UserCartScreenPreview() {
-    val shopViewModel = remember {
-        UserProductViewModel()
-    }
-
-    MaterialTheme {
-        Scaffold(
-            topBar = {
-                PawConnectTopAppBar(
-                    subtitle = "Your Cart",
-                    initials = "U",
-                    onProfileClick = {}
-                )
-            },
-            bottomBar = {
-                PawConnectBottomBar(
-                    isBusiness = false,
-                    selectedIndex = 1,
-                    onItemSelected = {}
-                )
-            }
-        ) { innerPadding ->
-
-            UserCartScreen(
-                shopViewModel = shopViewModel,
-                modifier = Modifier.padding(innerPadding),
-                onBackClick = {}
-            )
         }
     }
 }

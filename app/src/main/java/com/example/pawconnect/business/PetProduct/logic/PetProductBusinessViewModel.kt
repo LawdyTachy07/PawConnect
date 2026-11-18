@@ -71,7 +71,7 @@ class PetProductBusinessViewModel : ViewModel() {
 
     val lowStockProducts: List<BusinessProduct>
         get() = _products.value.filter {
-            it.displayStatus == "LOW STOCK"
+            it.isLowStock
         }
 
     val lowStockCount: Int

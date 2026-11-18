@@ -1,6 +1,7 @@
 
 package com.example.pawconnect.business.PetProduct.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -21,12 +22,15 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pawconnect.business.PetProduct.data.BusinessProduct
 import com.example.pawconnect.business.PetProduct.logic.PetProductBusinessViewModel
+import com.example.pawconnect.business.PetProduct.logic.ProductValidator
 
 @Composable
 fun PetProductBusinessScreen(
     viewModel: PetProductBusinessViewModel = viewModel(),
     onBottomNavigationClicked: (Int) -> Unit = {},
-    onViewOrderClick: () -> Unit = {}
+    onViewOrderClick: () -> Unit = {},
+    // Tells the parent when Add / Edit opens or closes (so it can go full screen)
+    onEditorOpenChange: (Boolean) -> Unit = {}
 ) {
 
     val products by viewModel.products.collectAsState()
@@ -38,6 +42,16 @@ fun PetProductBusinessScreen(
 
     var editingProduct by remember {
         mutableStateOf<BusinessProduct?>(null)
+    }
+
+    LaunchedEffect(showAddEditScreen) {
+        onEditorOpenChange(showAddEditScreen)
+    }
+
+    // Phone back button / gesture closes the Add / Edit form instead of leaving the app
+    BackHandler(enabled = showAddEditScreen) {
+        showAddEditScreen = false
+        editingProduct = null
     }
 
     // Delete confirmation
@@ -66,6 +80,11 @@ fun PetProductBusinessScreen(
 
         AddEditProductScreen(
             existingProduct = editingProduct,
+
+            // Used to stop duplicate product names (ignores the product being edited)
+            otherProductNames = products
+                .filter { it.id != editingProduct?.id }
+                .map { it.name },
 
             onBackClick = {
                 showAddEditScreen = false
@@ -400,6 +419,15 @@ fun PetProductBusinessScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    val restockError = if (restockAmount.isEmpty()) {
+                        "Quantity is required."
+                    } else {
+                        ProductValidator.validateRestock(
+                            amount = restockAmount,
+                            currentStock = selectedProduct.stockQuantity
+                        )
+                    }
+
                     OutlinedTextField(
 
                         value = restockAmount,
@@ -408,7 +436,21 @@ fun PetProductBusinessScreen(
 
                             if (value.isEmpty() || value.all { it.isDigit() }) {
 
-                                restockAmount = value
+                                restockAmount = value.take(5)
+                            }
+                        },
+
+                        isError = restockError != null,
+
+                        supportingText = {
+                            if (restockError != null) {
+                                Text(
+                                    text = restockError,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            } else {
+                                val newTotal = selectedProduct.stockQuantity + restockAmount.toInt()
+                                Text("New stock will be $newTotal units")
                             }
                         },
 
@@ -437,7 +479,9 @@ fun PetProductBusinessScreen(
 
                         val amount = restockAmount.toIntOrNull()
 
-                        if (amount != null && amount > 0) {
+                        if (amount != null &&
+                            ProductValidator.validateRestock(restockAmount, selectedProduct.stockQuantity) == null
+                        ) {
 
                             viewModel.restockProduct(
                                 productId = selectedProduct.id,
@@ -449,7 +493,8 @@ fun PetProductBusinessScreen(
                         }
                     },
 
-                    enabled = (restockAmount.toIntOrNull() ?: 0) > 0
+                    enabled = restockAmount.isNotEmpty() &&
+                            ProductValidator.validateRestock(restockAmount, selectedProduct.stockQuantity) == null
                 ) {
 
                     Text("Restock")

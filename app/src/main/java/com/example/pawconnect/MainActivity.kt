@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -16,6 +17,7 @@ import com.example.pawconnect.ui.theme.PawConnectTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pawconnect.business.PetProduct.ui.PetProductBusinessScreen
 import com.example.pawconnect.user.product.logic.UserProductViewModel
+import com.example.pawconnect.user.order.logic.OrderViewModel // <-- Added import for OrderViewModel
 
 // Import User Screens
 import com.example.pawconnect.user.adopt.ui.UserAdoptScreen
@@ -26,8 +28,10 @@ import com.example.pawconnect.user.profile.ui.UserProfileScreen
 // Import Business Screens
 import com.example.pawconnect.business.overview.ui.BusinessOverviewScreen
 import com.example.pawconnect.business.listings.ui.BusinessListingsScreen
+import com.example.pawconnect.business.listings.ui.BusinessListingsHubScreen // Pets / Products / Services selector
 import com.example.pawconnect.business.stock.ui.BusinessStockScreen
 import com.example.pawconnect.business.schedule.ui.BusinessScheduleScreen
+import com.example.pawconnect.business.orders.BusinessOrdersScreen // <-- Added import for Business Orders tab
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,41 +53,58 @@ fun PawConnectMainShell() {
 
     // Track currently selected bottom tab index (0 to 3)
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+
     val userProductViewModel: UserProductViewModel = viewModel()
+    val orderViewModel: OrderViewModel = viewModel() // <-- Initialized shared OrderViewModel for Module 6
+
+    // True while a full-screen Add / Edit form is open: hides the top bar and bottom bar
+    var hideAppChrome by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            PawConnectTopAppBar(
-                subtitle = if (isBusinessRole) "Happy Tails Pet Centre" else "User Access",
-                initials = if (isBusinessRole) "HT" else "US",
-                onProfileClick = {
-                    isBusinessRole = !isBusinessRole
-                    selectedTabIndex = if (isBusinessRole) 1 else 0
-                }
-            )
+            if (!hideAppChrome) {
+                PawConnectTopAppBar(
+                    subtitle = if (isBusinessRole) "Happy Tails Pet Centre" else "User Access",
+                    initials = if (isBusinessRole) "HT" else "US",
+                    onProfileClick = {
+                        isBusinessRole = !isBusinessRole
+                        selectedTabIndex = if (isBusinessRole) 1 else 0
+                    }
+                )
+            }
         },
         bottomBar = {
-            PawConnectBottomBar(
-                isBusiness = isBusinessRole,
-                selectedIndex = selectedTabIndex,
-                onItemSelected = { index ->
-                    selectedTabIndex = index
-                }
-            )
+            if (!hideAppChrome) {
+                PawConnectBottomBar(
+                    isBusiness = isBusinessRole,
+                    selectedIndex = selectedTabIndex,
+                    onItemSelected = { index ->
+                        selectedTabIndex = index
+                    }
+                )
+            }
         }
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                // The top/bottom bars already cover the status & navigation bars.
+                // Without this, every inner Scaffold adds that space again (the white gaps).
+                .consumeWindowInsets(innerPadding)
         ) {
             if (isBusinessRole) {
                 // BUSINESS SCREENS
                 when (selectedTabIndex) {
                     0 -> BusinessOverviewScreen()
-                    1 -> BusinessListingsScreen()
-                    2 -> PetProductBusinessScreen()
+                    1 -> BusinessListingsHubScreen(
+                        // "View Order" in the Products section jumps to the Orders tab
+                        onViewOrderClick = { selectedTabIndex = 2 },
+                        // Add / Edit Pet or Product opens full screen
+                        onEditorOpenChange = { isOpen -> hideAppChrome = isOpen }
+                    )
+                    2 -> BusinessOrdersScreen(orderViewModel = orderViewModel)
                     3 -> BusinessScheduleScreen()
                 }
             } else {
@@ -92,6 +113,7 @@ fun PawConnectMainShell() {
                     0 -> UserAdoptScreen()
                     1 -> UserShopScreen(
                         shopViewModel = userProductViewModel,
+                        orderViewModel = orderViewModel,
                         onProfileClick = {
                             selectedTabIndex = 3
                         },
