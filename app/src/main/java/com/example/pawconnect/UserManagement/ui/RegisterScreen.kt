@@ -19,7 +19,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -31,11 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pawconnect.UserManagement.data.UserProfile
 import com.example.pawconnect.UserManagement.logic.AuthViewModel
-
-private val WarmPeachBg = Color(0xFFFFE8D6)
-private val WarmBrownPrimary = Color(0xFF8B4513)
-private val WarmBrownDark = Color(0xFF5D4037)
-private val InputBorder = Color(0xFFE2D6CE)
+import com.example.pawconnect.ui.theme.PawConnectColors
 
 @Composable
 fun RegisterScreen(
@@ -59,14 +54,14 @@ fun RegisterScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(WarmPeachBg)
+            .background(PawConnectColors.HeaderBlue)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Top Brand Header
+            // Top Navy Brand Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -76,13 +71,13 @@ fun RegisterScreen(
                 Surface(
                     modifier = Modifier.size(38.dp),
                     shape = RoundedCornerShape(12.dp),
-                    color = WarmBrownPrimary
+                    color = PawConnectColors.PrimaryBlue
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Rounded.Pets,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = PawConnectColors.White,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -90,10 +85,10 @@ fun RegisterScreen(
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = buildAnnotatedString {
-                        withStyle(SpanStyle(color = WarmBrownDark, fontWeight = FontWeight.ExtraBold)) {
+                        withStyle(SpanStyle(color = PawConnectColors.White, fontWeight = FontWeight.ExtraBold)) {
                             append("Paw")
                         }
-                        withStyle(SpanStyle(color = WarmBrownPrimary, fontWeight = FontWeight.ExtraBold)) {
+                        withStyle(SpanStyle(color = PawConnectColors.SoftBlue, fontWeight = FontWeight.ExtraBold)) {
                             append("Connect")
                         }
                     },
@@ -105,7 +100,7 @@ fun RegisterScreen(
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                color = Color.White,
+                color = PawConnectColors.White,
                 shadowElevation = 6.dp
             ) {
                 Column(
@@ -122,7 +117,7 @@ fun RegisterScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = if (isPartner) "PARTNER REGISTRATION" else "USER REGISTRATION",
-                                color = WarmBrownPrimary,
+                                color = PawConnectColors.PrimaryBlue,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 1.2.sp
@@ -130,7 +125,7 @@ fun RegisterScreen(
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = if (isPartner) "Create partner account" else "Create your account",
-                                color = Color(0xFF1E293B),
+                                color = PawConnectColors.TextPrimary,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -141,7 +136,7 @@ fun RegisterScreen(
                                 } else {
                                     "Find pets, shop essentials and book trusted pet care."
                                 },
-                                color = Color.Gray,
+                                color = PawConnectColors.TextSecondary,
                                 fontSize = 13.sp
                             )
                         }
@@ -154,14 +149,14 @@ fun RegisterScreen(
                                     onNavigateBack()
                                 },
                             shape = CircleShape,
-                            border = BorderStroke(1.dp, InputBorder),
-                            color = Color.White
+                            border = BorderStroke(1.dp, PawConnectColors.Border),
+                            color = PawConnectColors.White
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = "Back",
-                                    tint = WarmBrownPrimary,
+                                    tint = PawConnectColors.PrimaryBlue,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -174,13 +169,13 @@ fun RegisterScreen(
                     OutlinedTextField(
                         value = fullName,
                         onValueChange = { fullName = it; localError = null },
-                        placeholder = { Text("e.g. Aina Nabila", fontSize = 13.sp, color = Color.Gray) },
-                        leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null, tint = WarmBrownPrimary) },
+                        placeholder = { Text("e.g. Aina Nabila", fontSize = 13.sp, color = PawConnectColors.TextSecondary) },
+                        leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null, tint = PawConnectColors.PrimaryBlue) },
                         singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = InputBorder,
-                            focusedBorderColor = WarmBrownPrimary
+                            unfocusedBorderColor = PawConnectColors.Border,
+                            focusedBorderColor = PawConnectColors.PrimaryBlue
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -191,13 +186,13 @@ fun RegisterScreen(
                         OutlinedTextField(
                             value = organizationName,
                             onValueChange = { organizationName = it; localError = null },
-                            placeholder = { Text("e.g. Happy Tails Pet Centre", fontSize = 13.sp, color = Color.Gray) },
-                            leadingIcon = { Icon(Icons.Outlined.Business, contentDescription = null, tint = WarmBrownPrimary) },
+                            placeholder = { Text("e.g. Happy Tails Pet Centre", fontSize = 13.sp, color = PawConnectColors.TextSecondary) },
+                            leadingIcon = { Icon(Icons.Outlined.Business, contentDescription = null, tint = PawConnectColors.PrimaryBlue) },
                             singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = InputBorder,
-                                focusedBorderColor = WarmBrownPrimary
+                                unfocusedBorderColor = PawConnectColors.Border,
+                                focusedBorderColor = PawConnectColors.PrimaryBlue
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -208,15 +203,15 @@ fun RegisterScreen(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it; localError = null },
-                        placeholder = { Text("e.g. name@email.com", fontSize = 13.sp, color = Color.Gray) },
+                        placeholder = { Text("e.g. name@email.com", fontSize = 13.sp, color = PawConnectColors.TextSecondary) },
                         leadingIcon = {
-                            Text("@", color = WarmBrownPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text("@", color = PawConnectColors.PrimaryBlue, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         },
                         singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = InputBorder,
-                            focusedBorderColor = WarmBrownPrimary
+                            unfocusedBorderColor = PawConnectColors.Border,
+                            focusedBorderColor = PawConnectColors.PrimaryBlue
                         ),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth()
@@ -227,15 +222,15 @@ fun RegisterScreen(
                     OutlinedTextField(
                         value = phoneNumber,
                         onValueChange = { phoneNumber = it; localError = null },
-                        placeholder = { Text("e.g. 60 12 345 6789", fontSize = 13.sp, color = Color.Gray) },
+                        placeholder = { Text("e.g. 60 12 345 6789", fontSize = 13.sp, color = PawConnectColors.TextSecondary) },
                         leadingIcon = {
-                            Text("+", color = WarmBrownPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text("+", color = PawConnectColors.PrimaryBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         },
                         singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = InputBorder,
-                            focusedBorderColor = WarmBrownPrimary
+                            unfocusedBorderColor = PawConnectColors.Border,
+                            focusedBorderColor = PawConnectColors.PrimaryBlue
                         ),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         modifier = Modifier.fillMaxWidth()
@@ -246,29 +241,29 @@ fun RegisterScreen(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it; localError = null },
-                        placeholder = { Text("Minimum 6 characters", fontSize = 13.sp, color = Color.Gray) },
+                        placeholder = { Text("Minimum 6 characters", fontSize = 13.sp, color = PawConnectColors.TextSecondary) },
                         leadingIcon = {
                             Box(
                                 modifier = Modifier
                                     .size(7.dp)
-                                    .background(WarmBrownPrimary, CircleShape)
+                                    .background(PawConnectColors.PrimaryBlue, CircleShape)
                             )
                         },
                         trailingIcon = {
                             TextButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Text(
                                     text = if (passwordVisible) "Hide" else "Show",
-                                    color = WarmBrownPrimary,
+                                    color = PawConnectColors.PrimaryBlue,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
                         },
                         singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = InputBorder,
-                            focusedBorderColor = WarmBrownPrimary
+                            unfocusedBorderColor = PawConnectColors.Border,
+                            focusedBorderColor = PawConnectColors.PrimaryBlue
                         ),
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -280,19 +275,19 @@ fun RegisterScreen(
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it; localError = null },
-                        placeholder = { Text("Repeat your password", fontSize = 13.sp, color = Color.Gray) },
+                        placeholder = { Text("Repeat your password", fontSize = 13.sp, color = PawConnectColors.TextSecondary) },
                         leadingIcon = {
                             Box(
                                 modifier = Modifier
                                     .size(7.dp)
-                                    .background(WarmBrownPrimary, CircleShape)
+                                    .background(PawConnectColors.PrimaryBlue, CircleShape)
                             )
                         },
                         singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = InputBorder,
-                            focusedBorderColor = WarmBrownPrimary
+                            unfocusedBorderColor = PawConnectColors.Border,
+                            focusedBorderColor = PawConnectColors.PrimaryBlue
                         ),
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -302,7 +297,7 @@ fun RegisterScreen(
                     val displayError = localError ?: uiState.errorMessage
                     displayError?.let { err ->
                         Spacer(modifier = Modifier.height(10.dp))
-                        Text(text = err, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                        Text(text = err, color = PawConnectColors.Error, fontSize = 12.sp)
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -325,7 +320,7 @@ fun RegisterScreen(
                         },
                         enabled = !uiState.isLoading,
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = WarmBrownPrimary),
+                        colors = ButtonDefaults.buttonColors(containerColor = PawConnectColors.ButtonBlue),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
@@ -333,7 +328,7 @@ fun RegisterScreen(
                         if (uiState.isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(22.dp),
-                                color = Color.White,
+                                color = PawConnectColors.White,
                                 strokeWidth = 2.dp
                             )
                         } else {
@@ -341,13 +336,13 @@ fun RegisterScreen(
                                 text = if (isPartner) "Create Partner account" else "Create User account",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = PawConnectColors.White
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = PawConnectColors.White,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -364,10 +359,10 @@ fun RegisterScreen(
                             },
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Text(text = "Already have an account? ", color = Color.Gray, fontSize = 12.sp)
+                        Text(text = "Already have an account? ", color = PawConnectColors.TextSecondary, fontSize = 12.sp)
                         Text(
                             text = "Login",
-                            color = WarmBrownPrimary,
+                            color = PawConnectColors.PrimaryBlue,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -382,6 +377,6 @@ fun RegisterScreen(
 
 @Composable
 private fun RegLabel(text: String) {
-    Text(text = text, color = WarmBrownDark, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+    Text(text = text, color = PawConnectColors.TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     Spacer(modifier = Modifier.height(6.dp))
 }

@@ -32,12 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pawconnect.UserManagement.data.UserProfile
 import com.example.pawconnect.UserManagement.logic.AuthViewModel
-
-private val WarmPeachBg = Color(0xFFFFE8D6)
-private val WarmBrownPrimary = Color(0xFF8B4513)
-private val WarmBrownDark = Color(0xFF5D4037)
-private val SoftCreamSurface = Color(0xFFFFF8F3)
-private val InputBorder = Color(0xFFE2D6CE)
+import com.example.pawconnect.ui.theme.PawConnectColors
 
 @Composable
 fun LoginScreen(
@@ -51,18 +46,19 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
+    var infoMessage by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(WarmPeachBg)
+            .background(PawConnectColors.HeaderBlue)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Top Brand Header
+            // Top Navy Brand Header matching PawConnectTopAppBar
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -72,13 +68,13 @@ fun LoginScreen(
                     Surface(
                         modifier = Modifier.size(40.dp),
                         shape = RoundedCornerShape(12.dp),
-                        color = WarmBrownPrimary
+                        color = PawConnectColors.PrimaryBlue
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Rounded.Pets,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = PawConnectColors.White,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -86,10 +82,10 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = buildAnnotatedString {
-                            withStyle(SpanStyle(color = WarmBrownDark, fontWeight = FontWeight.ExtraBold)) {
+                            withStyle(SpanStyle(color = PawConnectColors.White, fontWeight = FontWeight.ExtraBold)) {
                                 append("Paw")
                             }
-                            withStyle(SpanStyle(color = WarmBrownPrimary, fontWeight = FontWeight.ExtraBold)) {
+                            withStyle(SpanStyle(color = PawConnectColors.SoftBlue, fontWeight = FontWeight.ExtraBold)) {
                                 append("Connect")
                             }
                         },
@@ -97,10 +93,10 @@ fun LoginScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "🐾 Your trusted pet adoption, shop & care hub",
-                    color = WarmBrownDark,
+                    text = "Your trusted pet adoption, shop & care hub",
+                    color = PawConnectColors.SoftBlue,
                     fontSize = 13.sp
                 )
             }
@@ -109,7 +105,7 @@ fun LoginScreen(
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                color = Color.White,
+                color = PawConnectColors.White,
                 shadowElevation = 6.dp
             ) {
                 Column(
@@ -120,7 +116,7 @@ fun LoginScreen(
                 ) {
                     Text(
                         text = "WELCOME BACK",
-                        color = WarmBrownPrimary,
+                        color = PawConnectColors.PrimaryBlue,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.2.sp
@@ -128,14 +124,14 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Sign in to PawConnect",
-                        color = Color(0xFF1E293B),
+                        color = PawConnectColors.TextPrimary,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Continue your journey with your pets and community.",
-                        color = Color.Gray,
+                        color = PawConnectColors.TextSecondary,
                         fontSize = 13.sp
                     )
 
@@ -145,7 +141,7 @@ fun LoginScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
-                        color = SoftCreamSurface
+                        color = PawConnectColors.LightBlue
                     ) {
                         Row(
                             modifier = Modifier.padding(4.dp),
@@ -170,23 +166,24 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    Text("Email address", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = WarmBrownDark)
+                    Text("Email address", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PawConnectColors.TextPrimary)
                     Spacer(modifier = Modifier.height(6.dp))
                     OutlinedTextField(
                         value = email,
                         onValueChange = {
                             email = it
                             authViewModel.clearMessages()
+                            infoMessage = null
                         },
-                        placeholder = { Text("name@email.com", fontSize = 13.sp, color = Color.Gray) },
+                        placeholder = { Text("name@email.com", fontSize = 13.sp, color = PawConnectColors.TextSecondary) },
                         leadingIcon = {
-                            Text("@", color = WarmBrownPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text("@", color = PawConnectColors.PrimaryBlue, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         },
                         singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = InputBorder,
-                            focusedBorderColor = WarmBrownPrimary
+                            unfocusedBorderColor = PawConnectColors.Border,
+                            focusedBorderColor = PawConnectColors.PrimaryBlue
                         ),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth()
@@ -194,37 +191,38 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    Text("Password", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = WarmBrownDark)
+                    Text("Password", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PawConnectColors.TextPrimary)
                     Spacer(modifier = Modifier.height(6.dp))
                     OutlinedTextField(
                         value = password,
                         onValueChange = {
                             password = it
                             authViewModel.clearMessages()
+                            infoMessage = null
                         },
-                        placeholder = { Text("Minimum 6 characters", fontSize = 13.sp, color = Color.Gray) },
+                        placeholder = { Text("Minimum 6 characters", fontSize = 13.sp, color = PawConnectColors.TextSecondary) },
                         leadingIcon = {
                             Box(
                                 modifier = Modifier
                                     .size(7.dp)
-                                    .background(WarmBrownPrimary, CircleShape)
+                                    .background(PawConnectColors.PrimaryBlue, CircleShape)
                             )
                         },
                         trailingIcon = {
                             TextButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Text(
                                     text = if (passwordVisible) "Hide" else "Show",
-                                    color = WarmBrownPrimary,
+                                    color = PawConnectColors.PrimaryBlue,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
                         },
                         singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = InputBorder,
-                            focusedBorderColor = WarmBrownPrimary
+                            unfocusedBorderColor = PawConnectColors.Border,
+                            focusedBorderColor = PawConnectColors.PrimaryBlue
                         ),
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -245,23 +243,31 @@ fun LoginScreen(
                             Checkbox(
                                 checked = rememberMe,
                                 onCheckedChange = { rememberMe = it },
-                                colors = CheckboxDefaults.colors(checkedColor = WarmBrownPrimary),
+                                colors = CheckboxDefaults.colors(checkedColor = PawConnectColors.PrimaryBlue),
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Remember me", color = Color.Gray, fontSize = 12.sp)
+                            Text("Remember me", color = PawConnectColors.TextSecondary, fontSize = 12.sp)
                         }
                         Text(
                             text = "Forgot password?",
-                            color = WarmBrownPrimary,
+                            color = PawConnectColors.PrimaryBlue,
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable {
+                                infoMessage = "Password reset link can be sent to your registered email."
+                            }
                         )
                     }
 
                     uiState.errorMessage?.let { error ->
                         Spacer(modifier = Modifier.height(10.dp))
-                        Text(text = error, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                        Text(text = error, color = PawConnectColors.Error, fontSize = 12.sp)
+                    }
+
+                    infoMessage?.let { info ->
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(text = info, color = PawConnectColors.PrimaryBlue, fontSize = 12.sp)
                     }
 
                     Spacer(modifier = Modifier.height(18.dp))
@@ -270,7 +276,7 @@ fun LoginScreen(
                         onClick = { authViewModel.login(email, password, onLoginSuccess) },
                         enabled = !uiState.isLoading,
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = WarmBrownPrimary),
+                        colors = ButtonDefaults.buttonColors(containerColor = PawConnectColors.ButtonBlue),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
@@ -278,7 +284,7 @@ fun LoginScreen(
                         if (uiState.isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(22.dp),
-                                color = Color.White,
+                                color = PawConnectColors.White,
                                 strokeWidth = 2.dp
                             )
                         } else {
@@ -286,25 +292,25 @@ fun LoginScreen(
                                 text = if (selectedRole == "user") "Login as User" else "Login as Partner",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = PawConnectColors.White
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = PawConnectColors.White,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
-                    HorizontalDivider(color = Color(0xFFF1E8E2))
+                    HorizontalDivider(color = PawConnectColors.Border.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Text(
                         text = "New to PawConnect?",
-                        color = Color.Gray,
+                        color = PawConnectColors.TextSecondary,
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
@@ -322,10 +328,10 @@ fun LoginScreen(
                                 onNavigateToRegister("user")
                             },
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, WarmPeachBg),
+                            border = BorderStroke(1.dp, PawConnectColors.Border),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = WarmPeachBg,
-                                contentColor = WarmBrownPrimary
+                                containerColor = PawConnectColors.ChipBlue,
+                                contentColor = PawConnectColors.PrimaryBlue
                             ),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
                             modifier = Modifier.weight(1f)
@@ -339,10 +345,10 @@ fun LoginScreen(
                                 onNavigateToRegister("business")
                             },
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, WarmPeachBg),
+                            border = BorderStroke(1.dp, PawConnectColors.Border),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = WarmPeachBg,
-                                contentColor = WarmBrownPrimary
+                                containerColor = PawConnectColors.ChipBlue,
+                                contentColor = PawConnectColors.PrimaryBlue
                             ),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
                             modifier = Modifier.weight(1f)
@@ -369,7 +375,7 @@ private fun RolePill(
             .clip(RoundedCornerShape(11.dp))
             .clickable { onClick() },
         shape = RoundedCornerShape(11.dp),
-        color = if (selected) Color.White else Color.Transparent,
+        color = if (selected) PawConnectColors.White else Color.Transparent,
         shadowElevation = if (selected) 2.dp else 0.dp
     ) {
         Row(
@@ -380,13 +386,13 @@ private fun RolePill(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (selected) WarmBrownPrimary else Color.Gray,
+                tint = if (selected) PawConnectColors.PrimaryBlue else PawConnectColors.TextSecondary,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = label,
-                color = if (selected) WarmBrownDark else Color.Gray,
+                color = if (selected) PawConnectColors.TextPrimary else PawConnectColors.TextSecondary,
                 fontSize = 13.sp,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
             )
